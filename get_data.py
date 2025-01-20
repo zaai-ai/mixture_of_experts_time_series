@@ -1,10 +1,19 @@
+"""
+This module provides functions to download, and save datasets from the M3 and M4 competitions.
+
+Functions:
+    download_m3_data(): Download all M3 Competition datasets.
+    download_m4_data(): Download all M4 Competition datasets.
+    save_to_csv(dataframe, filename): Save a DataFrame to a CSV file.
+    main(): Main function to download, combine, and save M3 and M4 datasets.
+"""
 import pandas as pd
 from datasetsforecast.m3 import M3
 from datasetsforecast.m4 import M4
 
 # Define directories for saving datasets
-m3_dir = './data/m3'
-m4_dir = './data/m4'
+M3_DIR = './data/m3'
+M4_DIR = './data/m4'
 
 # Define groups for M3 and M4
 m3_groups = ['Yearly', 'Quarterly', 'Monthly', 'Other']
@@ -16,7 +25,7 @@ def download_m3_data():
     m3_all_series = []
     for group in m3_groups:
         print(f"Downloading M3 group: {group}")
-        m3_group_data = M3.load(directory=m3_dir, group=group)
+        m3_group_data = M3.load(directory=M3_DIR, group=group)
         m3_all_series.append(m3_group_data[0])
     m3_all = pd.concat(m3_all_series, ignore_index=True)
     print(f"Total series in M3: {m3_all['unique_id'].nunique()}")
@@ -28,7 +37,7 @@ def download_m4_data():
     m4_all_series = []
     for group in m4_groups:
         print(f"Downloading M4 group: {group}")
-        m4_group_data = M4.load(directory=m4_dir, group=group)
+        m4_group_data = M4.load(directory=M4_DIR, group=group)
         m4_all_series.append(m4_group_data[0])
     m4_all = pd.concat(m4_all_series, ignore_index=True)
     print(f"Total series in M4: {m4_all['unique_id'].nunique()}")
