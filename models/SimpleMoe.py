@@ -85,52 +85,9 @@ class SimpleMoe(BaseWindows):
         self.dropout = nn.Dropout(dropout)
         
         self.experts = nn.ModuleList([
-            NBEATS(h=h,
-                   input_size=input_size,
-                   futr_exog_list = None,
-                   hist_exog_list = None,
-                   stat_exog_list = None,
-                   loss = SMAPE(),
-                   valid_loss = None,
-                   max_steps = max_steps,
-                   learning_rate = learning_rate,
-                   num_lr_decays = num_lr_decays,
-                   early_stop_patience_steps = early_stop_patience_steps,
-                   val_check_steps = val_check_steps,
-                   batch_size = batch_size,
-                   step_size = step_size,
-                   scaler_type = scaler_type,
-                   random_seed = random_seed,
-                   drop_last_loader = drop_last_loader,
-                   optimizer = optimizer,
-                   optimizer_kwargs = optimizer_kwargs,
-                   lr_scheduler = lr_scheduler,
-                   lr_scheduler_kwargs = lr_scheduler_kwargs,
-                   dataloader_kwargs = dataloader_kwargs,
-                   **trainer_kwargs),
-            MLP(h=h,
-                input_size=input_size,
-                futr_exog_list = None,
-                hist_exog_list = None,
-                stat_exog_list = None,
-                loss = SMAPE(),
-                valid_loss = None,
-                max_steps = max_steps,
-                learning_rate = learning_rate,
-                num_lr_decays = num_lr_decays,
-                early_stop_patience_steps = early_stop_patience_steps,
-                val_check_steps = val_check_steps,
-                batch_size = batch_size,
-                step_size = step_size,
-                scaler_type = scaler_type,
-                random_seed = random_seed,
-                drop_last_loader = drop_last_loader,
-                optimizer = optimizer,
-                optimizer_kwargs = optimizer_kwargs,
-                lr_scheduler = lr_scheduler,
-                lr_scheduler_kwargs = lr_scheduler_kwargs,
-                dataloader_kwargs = dataloader_kwargs,
-                **trainer_kwargs),
+            nn.Linear(self.input_size, self.h),
+            nn.Linear(self.input_size, self.h),
+            nn.Linear(self.input_size, self.h),
             nn.Linear(self.input_size, self.h),
         ])
         
@@ -139,17 +96,18 @@ class SimpleMoe(BaseWindows):
         self.softmax = nn.Softmax(dim=1)
         
         
-    def forward(self, x):
+    def forward(self, windows_batch):
+        
+        insample_y = windows_batch['insample_y']
+        
         # Compute the gate
-        gate = self.gate(x)
+        gate = self.gate(insample_y)
         gate = self.softmax(gate)
         
         # Compute the weighted sum of the experts
-        weighted_sum = torch.zeros(x.size(0), self.h)
+        weighted_sum = torch.zeros(insample_y.size(0), self.h)
         for i in range(self.num_experts):
-            weighted_sum += gate[:, i].unsqueeze(1) * self.experts[i](x)
-            
-            
+            weighted_sum += gate[:, i].unsqueeze(1) * self.experts[i](insample_y)
         
         
         return weighted_sum

@@ -46,13 +46,19 @@ fig, ax = plt.subplots(1, 1, figsize = (20, 7))
 Y_hat_df = forecasts.reset_index(drop=False).drop(columns=['unique_id','ds'])
 plot_df = pd.concat([Y_test_df, Y_hat_df], axis=1)
 plot_df = pd.concat([Y_train_df, plot_df])
+print(plot_df)
 
-plot_df = plot_df[plot_df.unique_id=='Airline1'].drop('unique_id', axis=1)
-plt.plot(plot_df['ds'], plot_df['y'], c='black', label='True')
-plt.plot(plot_df['ds'], plot_df['RMoK'], c='blue', label='Forecast')
-ax.set_title('AirPassengers Forecast', fontsize=22)
-ax.set_ylabel('Monthly Passengers', fontsize=20)
+# Plot all predictions
+for unique_id in plot_df['unique_id'].unique()[-10::]:
+    temp_df = plot_df[plot_df['unique_id'] == unique_id]
+    plt.plot(temp_df['ds'], temp_df['y'], label=f'True {unique_id}')
+    plt.plot(temp_df['ds'], temp_df['SimpleMoe'], label=f'Forecast {unique_id}')
+
+ax.set_title('All Forecasts', fontsize=22)
+ax.set_ylabel('Monthly', fontsize=20)
 ax.set_xlabel('Year', fontsize=20)
 ax.legend(prop={'size': 15})
 ax.grid()
 
+plt.show()
+fig.savefig('all_forecasts.png')
