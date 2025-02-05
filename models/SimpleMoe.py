@@ -1,27 +1,63 @@
-import math
+
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from neuralforecast.losses.pytorch import SMAPE
 from neuralforecast.common._base_windows import BaseWindows
-from neuralforecast.common._modules import RevIN
-
-
-# experts
-from neuralforecast.models.nbeats import NBEATS
-from neuralforecast.models.mlp import MLP
 
 
 class SimpleMoe(BaseWindows):
-    
+    """
+    Simple Mixture of Experts (MoE) model for time series forecasting.
+    Attributes:
+        SAMPLING_TYPE (str): Type of sampling used, default is 'univariate'.
+        EXOGENOUS_FUTR (bool): Indicates if future exogenous variables are used, default is False.
+        EXOGENOUS_HIST (bool): Indicates if historical exogenous variables are used, default is False.
+        EXOGENOUS_STAT (bool): Indicates if static exogenous variables are used, default is False.
+    Args:
+        h (int): Forecast horizon.
+        input_size (int): Size of the input features.
+        dropout (float, optional): Dropout rate, default is 0.1.
+        futr_exog_list (list, optional): List of future exogenous variables, default is None.
+        hist_exog_list (list, optional): List of historical exogenous variables, default is None.
+        stat_exog_list (list, optional): List of static exogenous variables, default is None.
+        loss (callable, optional): Loss function, default is SMAPE().
+        valid_loss (callable, optional): Validation loss function, default is None.
+        max_steps (int, optional): Maximum number of training steps, default is 1000.
+        learning_rate (float, optional): Learning rate, default is 1e-3.
+        num_lr_decays (int, optional): Number of learning rate decays, default is -1.
+        early_stop_patience_steps (int, optional): Early stopping patience steps, default is -1.
+        val_check_steps (int, optional): Validation check steps, default is 100.
+        batch_size (int, optional): Batch size for training, default is 32.
+        valid_batch_size (int, optional): Batch size for validation, default is 32.
+        windows_batch_size (int, optional): Batch size for windows, default is 32.
+        inference_windows_batch_size (int, optional): Batch size for inference windows, default is 32.
+        start_padding_enabled (bool, optional): If start padding is enabled, default is False.
+        step_size (int, optional): Step size, default is 1.
+        scaler_type (str, optional): Type of scaler, default is 'identity'.
+        random_seed (int, optional): Random seed, default is 1.
+        drop_last_loader (bool, optional): If the last loader should be dropped, default is False.
+        optimizer (callable, optional): Optimizer, default is None.
+        optimizer_kwargs (dict, optional): Optimizer keyword arguments, default is None.
+        lr_scheduler (callable, optional): Learning rate scheduler, default is None.
+        lr_scheduler_kwargs (dict, optional): Learning rate scheduler keyword arguments, default is None.
+        dataloader_kwargs (dict, optional): Data loader keyword arguments, default is None.
+        **trainer_kwargs: Additional trainer keyword arguments.
+    Methods:
+        forward(windows_batch):
+            Forward pass of the model.
+            Args:
+                windows_batch (dict): Batch of windowed time series data.
+            Returns:
+                torch.Tensor: Weighted sum of the experts' outputs.
+    """
     # Class attributes
     SAMPLING_TYPE = 'univariate'
     EXOGENOUS_FUTR = False
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
-    
+
     def __init__(self,
                  h,
                  input_size,
@@ -31,7 +67,7 @@ class SimpleMoe(BaseWindows):
                  stat_exog_list = None,
                  loss = SMAPE(),
                  valid_loss = None,
-                 max_steps: int = 1000,
+                 max_steps: int = 3000,
                  learning_rate: float = 1e-3,
                  num_lr_decays: int = -1,
                  early_stop_patience_steps: int =-1,
@@ -51,7 +87,7 @@ class SimpleMoe(BaseWindows):
                  lr_scheduler_kwargs = None,
                  dataloader_kwargs = None,            
                  **trainer_kwargs):
-        
+
         super(SimpleMoe, self).__init__(h=h,
                                    input_size=input_size,
                                    stat_exog_list = None,
@@ -79,36 +115,36 @@ class SimpleMoe(BaseWindows):
                                    lr_scheduler_kwargs=lr_scheduler_kwargs,
                                    dataloader_kwargs=dataloader_kwargs,
                                    **trainer_kwargs)
-       
+
         self.input_size = input_size
         self.h = h
         self.dropout = nn.Dropout(dropout)
-        
+
         self.experts = nn.ModuleList([
             nn.Linear(self.input_size, self.h),
             nn.Linear(self.input_size, self.h),
             nn.Linear(self.input_size, self.h),
             nn.Linear(self.input_size, self.h),
         ])
-        
+
         self.num_experts = len(self.experts)
         self.gate = nn.Linear(self.input_size, self.num_experts)
         self.softmax = nn.Softmax(dim=1)
-        
-        
+
+
     def forward(self, windows_batch):
-        
+
         insample_y = windows_batch['insample_y']
-        
+
         # Compute the gate
         gate = self.gate(insample_y)
         gate = self.softmax(gate)
-        
+
         # Compute the weighted sum of the experts
         weighted_sum = torch.zeros(insample_y.size(0), self.h)
         for i in range(self.num_experts):
             weighted_sum += gate[:, i].unsqueeze(1) * self.experts[i](insample_y)
-        
-        
+
+
         return weighted_sum
         

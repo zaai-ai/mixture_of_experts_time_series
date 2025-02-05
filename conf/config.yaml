@@ -1,21 +1,28 @@
 # config.yaml
 version_base: 1.1
 
-model:
-  simple_moe:
-    h: 12
-    input_size: 24
-    dropout: 0.1
-    loss: "SMAPE"
-    valid_loss: "SMAPE"
-    early_stop_patience_steps: 3
-    batch_size: 32
+# List of active models to run (should match keys in the models section)
+active_models: ["simpleMoe"]
+
+# List of active datasets to run (should match keys in the data section)
+active_datasets: ["m3_monthly"]
+
+models:
+  simpleMoe:
+    params:
+      input_size: 24
+      dropout: 0.1
+      loss: "SMAPE"         # Single string value (will be eval'd to a loss instance)
+      valid_loss: "SMAPE"    # Single string value
+      early_stop_patience_steps: 3  # A single number
+      batch_size: 32
 
 data:
   m3_monthly:
     directory: "./data/m3"
     group: "Monthly"
-    horizon: 12
+    # List of horizons to test (e.g. forecasting 12, 18, and 24 steps ahead)
+    horizons: [12, 18, 24]
 
 forecast:
   default_forecast:
@@ -30,4 +37,3 @@ plot:
     title: "All Forecasts"
     legend_font_size: 15
     grid: true
-

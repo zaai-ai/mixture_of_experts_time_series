@@ -19,6 +19,7 @@ M4_DIR = './data/m4'
 m3_groups = ['Yearly', 'Quarterly', 'Monthly', 'Other']
 m4_groups = ['Yearly', 'Quarterly', 'Monthly', 'Weekly', 'Daily', 'Hourly']
 
+
 def download_m3_data():
     """Download all M3 Competition datasets and combine them."""
     print("Downloading M3 datasets...")
@@ -30,6 +31,7 @@ def download_m3_data():
     m3_all = pd.concat(m3_all_series, ignore_index=True)
     print(f"Total series in M3: {m3_all['unique_id'].nunique()}")
     return m3_all
+
 
 def download_m4_data():
     """Download all M4 Competition datasets and combine them."""
@@ -43,10 +45,12 @@ def download_m4_data():
     print(f"Total series in M4: {m4_all['unique_id'].nunique()}")
     return m4_all
 
+
 def save_to_csv(dataframe, filename):
     """Save a dataframe to a CSV file."""
     dataframe.to_csv(filename, index=False)
     print(f"Saved dataset to {filename}")
+
 
 def main():
     """Main function to download, combine, and save M3 and M4 datasets."""
