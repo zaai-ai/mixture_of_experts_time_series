@@ -126,48 +126,41 @@ def plot_mean_smape(horizons, mean_smape_results, dataset_name: str):
 
 def plot_forecasts(Y_train_df, Y_test_df, forecasts, model_instance, dataset_name: str, plot_cfg: DictConfig):
     """
-    Plot the ground truth and the forecasts side by side.
-    Left subplot: full ground truth (training + test)
-    Right subplot: forecasts on the test period.
+    Plot the ground truth and the forecasts in the same graph.
+    Ground truth will be a solid line, and forecasts will be a dashed line.
     """
     forecast_col = model_instance.__class__.__name__
     # Ensure forecasts has the 'unique_id', 'ds', and forecast_col columns
     forecasts = forecasts.reset_index(drop=False)
     
+    # Keep last 24 months from train before concatenating
+    train_last_24 = Y_train_df.groupby('unique_id').tail(24)
+
     # Combine training and test data for the ground truth
-    gt_df = pd.concat([Y_train_df, Y_test_df], axis=0)
-    # gt_df = Y_test_df.copy()
+    gt_df = pd.concat([train_last_24, Y_test_df], axis=0)
+    forecasts = pd.concat([train_last_24, forecasts], axis=0)
     
-    # Create a figure with 2 subplots side by side.
-    fig, axs = plt.subplots(1, 2, figsize=(plot_cfg.figsize[0]*2, plot_cfg.figsize[1]))
+    # Create a figure
+    plt.figure(figsize=(plot_cfg.figsize[0], plot_cfg.figsize[1]))
 
     unique_ids = gt_df['unique_id'].unique()[-10:]  # Plot only the last 10 series
     
-    # --- Left subplot: Ground Truth ---
+    # Plot ground truth and forecasts
     for unique_id in unique_ids:
-        temp_df = gt_df[gt_df['unique_id'] == unique_id]
-        axs[0].plot(temp_df['ds'], temp_df['y'], label=f"Series {unique_id}")
-    axs[0].set_title("Ground Truth")
-    axs[0].set_xlabel(plot_cfg.xlabel)
-    axs[0].set_ylabel(plot_cfg.ylabel)
-    axs[0].grid(plot_cfg.grid)
-    axs[0].legend(fontsize=plot_cfg.legend_font_size)
+        temp_gt_df = gt_df[gt_df['unique_id'] == unique_id]
+        temp_fcst_df = forecasts[forecasts['unique_id'] == unique_id]
+        color = np.random.rand(3,1    )
+        plt.plot(temp_gt_df['ds'], temp_gt_df['y'], label=f"Series {unique_id} - Ground Truth", color=color)
+        plt.plot(temp_fcst_df['ds'], temp_fcst_df[forecast_col], linestyle='--', label=f"Series {unique_id} - Forecast", color=color)
+
+    plt.title(plot_cfg.title)
+    plt.xlabel(plot_cfg.xlabel)
+    plt.ylabel(plot_cfg.ylabel)
+    plt.grid(plot_cfg.grid)
+    plt.legend(fontsize=plot_cfg.legend_font_size)
     
-    # --- Right subplot: Forecasts ---
-    # We assume forecasts are only available for the test period.
-    for unique_id in unique_ids:
-        temp_df = forecasts[forecasts['unique_id'] == unique_id]
-        axs[1].plot(temp_df['ds'], temp_df[forecast_col], label=f"Series {unique_id}")
-    axs[1].set_title("Forecasts")
-    axs[1].set_xlabel(plot_cfg.xlabel)
-    axs[1].set_ylabel(plot_cfg.ylabel)
-    axs[1].grid(plot_cfg.grid)
-    axs[1].legend(fontsize=plot_cfg.legend_font_size)
-    
-    # Set an overall title, adjust layout, and save the figure.
-    fig.suptitle(plot_cfg.title, fontsize=22)
-    fig.tight_layout(rect=[0, 0, 1, 0.95])
-    fig.savefig(f"{dataset_name}_{plot_cfg.save_path}")
+    # Save the figure
+    plt.savefig(f"{dataset_name}_{plot_cfg.save_path}")
     plt.show()
 
 

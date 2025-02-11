@@ -125,6 +125,9 @@ class SimpleMoe(BaseWindows):
             nn.Linear(self.input_size, self.h),
             nn.Linear(self.input_size, self.h),
             nn.Linear(self.input_size, self.h),
+            nn.Linear(self.input_size, self.h),
+            nn.Linear(self.input_size, self.h),
+
         ])
 
         self.num_experts = len(self.experts)
