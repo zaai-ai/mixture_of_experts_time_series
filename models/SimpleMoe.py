@@ -141,7 +141,7 @@ class SimpleMoe(BaseWindows):
         gate = self.softmax(gate)
 
         # Compute the weighted sum of the experts
-        weighted_sum = torch.zeros(insample_y.size(0), self.h)
+        weighted_sum = torch.zeros(insample_y.size(0), self.h, device=self.device)
         for i in range(self.num_experts):
             weighted_sum += gate[:, i].unsqueeze(1) * self.experts[i](insample_y)
 

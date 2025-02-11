@@ -79,8 +79,8 @@ def run_model_experiment(
             loss=eval(loss_str)(),         # e.g., eval("SMAPE")() creates an instance of SMAPE.
             valid_loss=eval(valid_loss_str)(),
             early_stop_patience_steps=early_stop,
-            batch_size=batch_size_val
-        )        
+            batch_size=batch_size_val,
+        )
     else:
         raise NotImplementedError(f"Model '{model_name}' is not implemented.")
 
