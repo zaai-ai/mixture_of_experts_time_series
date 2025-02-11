@@ -11,6 +11,8 @@ from omegaconf import DictConfig
 
 # Import your model classes (here we assume the module name matches the model name)
 from models.SimpleMoe import SimpleMoe
+from neuralforecast.models import NHITS
+
 
 
 def load_dataset(dataset_name: str, dataset_cfg: DictConfig):
@@ -63,15 +65,15 @@ def run_model_experiment(
     # Extract parameters (for those that might be lists, we use the helper function)
     # Note: For this example, we assume that 'h' is set to the forecast horizon.
     h_val = horizon  # here you might decide to use horizon as a model parameter
-    input_size_val = get_config_value(params.input_size, config_idx)
-    dropout_val = get_config_value(params.dropout, config_idx)
-    loss_str = get_config_value(params.loss, config_idx)
-    valid_loss_str = get_config_value(params.valid_loss, config_idx)
-    early_stop = get_config_value(params.early_stop_patience_steps, config_idx)
-    batch_size_val = get_config_value(params.batch_size, config_idx)
 
     # Initialize model instance based on model_name.
     if model_name.lower() == "simplemoe":
+        input_size_val = get_config_value(params.input_size, config_idx)
+        dropout_val = get_config_value(params.dropout, config_idx)
+        loss_str = get_config_value(params.loss, config_idx)
+        valid_loss_str = get_config_value(params.valid_loss, config_idx)
+        early_stop = get_config_value(params.early_stop_patience_steps, config_idx)
+        batch_size_val = get_config_value(params.batch_size, config_idx)
         model_instance = SimpleMoe(
             h=h_val,
             input_size=input_size_val,
@@ -81,6 +83,21 @@ def run_model_experiment(
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
         )
+    elif model_name.lower() == "nhits":
+        input_size_val = get_config_value(params.input_size, config_idx)
+        loss_str = get_config_value(params.loss, config_idx)
+        valid_loss_str = get_config_value(params.valid_loss, config_idx)
+        early_stop = get_config_value(params.early_stop_patience_steps, config_idx)
+        batch_size_val = get_config_value(params.batch_size, config_idx)
+        model_instance = NHITS(
+            h=h_val,
+            input_size=input_size_val,
+            loss=eval(loss_str)(),
+            valid_loss=eval(valid_loss_str)(),
+            early_stop_patience_steps=early_stop,
+            batch_size=batch_size_val,
+        )
+            
     else:
         raise NotImplementedError(f"Model '{model_name}' is not implemented.")
 
@@ -149,7 +166,7 @@ def plot_forecasts(Y_train_df, Y_test_df, forecasts, model_instance, dataset_nam
     for unique_id in unique_ids:
         temp_gt_df = gt_df[gt_df['unique_id'] == unique_id]
         temp_fcst_df = forecasts[forecasts['unique_id'] == unique_id]
-        color = np.random.rand(3,1    )
+        color = np.random.rand(3,)
         plt.plot(temp_gt_df['ds'], temp_gt_df['y'], label=f"Series {unique_id} - Ground Truth", color=color)
         plt.plot(temp_fcst_df['ds'], temp_fcst_df[forecast_col], linestyle='--', label=f"Series {unique_id} - Forecast", color=color)
 
