@@ -12,6 +12,7 @@ from omegaconf import DictConfig
 # model name)
 from models.SimpleMoe import SimpleMoe
 from neuralforecast.models import NHITS
+from neuralforecast.models import NBEATS
 
 
 def load_dataset(dataset_name: str, dataset_cfg: DictConfig):
@@ -78,6 +79,22 @@ def get_instance(
             valid_loss=eval(valid_loss_str)(),
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
+        )
+    elif model_name.lower() == "nbeats":
+        input_size_val = get_config_value(params.input_size, config_idx)
+        loss_str = get_config_value(params.loss, config_idx)
+        valid_loss_str = get_config_value(params.valid_loss, config_idx)
+        early_stop = get_config_value(
+        params.early_stop_patience_steps, config_idx)
+        batch_size_val = get_config_value(params.batch_size, config_idx)
+        model_instance = NBEATS(
+            h=horizon,
+            input_size=input_size_val,
+            loss=eval(loss_str)(),
+            valid_loss=eval(valid_loss_str)(),
+            early_stop_patience_steps=early_stop,
+            batch_size=batch_size_val,
+
         )
     elif model_name.lower() == "nhits":
         input_size_val = get_config_value(params.input_size, config_idx)
@@ -151,19 +168,22 @@ def run_model_experiment(
 
     # Evaluate sMAPE.
     current_smape = calculate_smape(Y_test_df, Y_hat_df, forecast_col)
-    
+
     return current_smape, forecasts, model_instance
 
 
-def plot_mean_smape(horizons, mean_smape_results, dataset_name: str):
+def plot_mean_smape(horizons, results, dataset_name: str):
     """Plot the mean sMAPE versus forecast horizons."""
+    pivot_table = results.pivot_table(values='smape', index='horizon', columns='model')
     plt.figure(figsize=(10, 6))
-    plt.plot(horizons, mean_smape_results, marker='o', linestyle='-')
+    for model in pivot_table.columns:
+        plt.plot(pivot_table.index, pivot_table[model], marker='o', linestyle='-', label=model)
     plt.xlabel("Forecast Horizon", fontsize=14)
     plt.ylabel("Mean sMAPE", fontsize=14)
     plt.title(f"Mean sMAPE vs. Forecast Horizon ({dataset_name})", fontsize=16)
     plt.grid(True)
     plt.xticks(horizons)
+    plt.legend(title='Model')
     plt.savefig(f"mean_smape_vs_horizon_{dataset_name}.png")
     plt.show()
 
@@ -227,6 +247,8 @@ def plot_forecasts(
 def run_exp(cfg: DictConfig):
     """Run the experiment based on the configuration."""
 
+    results = pd.DataFrame(columns=['model', 'horizon', 'smape'])
+
     # Loop over each active dataset specified in the config.
     for dataset_name in cfg.active_datasets:
         print(f"\n==== Running experiment for dataset: {dataset_name} ====")
@@ -243,7 +265,6 @@ def run_exp(cfg: DictConfig):
             continue
 
         horizons = dataset_cfg.horizons
-        mean_smape_results = []  # to store mean sMAPE per horizon
 
         # Loop over each forecast horizon.
         for horizon in horizons:
@@ -260,55 +281,56 @@ def run_exp(cfg: DictConfig):
                         f"Model configuration '{model_name}' not found in cfg.models!")
                     continue
 
-                # Determine number of configurations to run for this model.
-                # (For fixed values, this will be 1.)
-                if isinstance(horizons, list):
-                    n_configs = len(horizons)
-                else:
-                    n_configs = 1
+                # determine the index of the model configuration
+                i = horizons.index(horizon)
 
-                for i in range(n_configs):
-                    try:
-                        current_smape, forecasts, model_instance = run_model_experiment(
-                            model_name,
-                            model_config,
-                            Y_train_df,
-                            Y_test_df,
-                            horizon,
-                            cfg.forecast.default_forecast.freq,
-                            config_idx=i
-                        )
-                        print(
-                            f"Model '{model_name}' config {i}: sMAPE = {current_smape:.3f}")
-                        smape_list.append(current_smape)
-                    except Exception as e:
-                        print(
-                            f"Error running model '{model_name}' config {i}: {e}")
-                        continue
+                try:
+                    current_smape, forecasts, model_instance = run_model_experiment(
+                        model_name,
+                        model_config,
+                        Y_train_df,
+                        Y_test_df,
+                        horizon,
+                        cfg.forecast.default_forecast.freq,
+                        config_idx=i
+                    )
+                    print(
+                        f"Model '{model_name}' config {i}: sMAPE = {current_smape:.3f}")
+                    smape_list.append(current_smape)
+                    results = pd.concat([results,pd.DataFrame({
+                        'model': [model_name],
+                        'horizon': [horizon],
+                        'smape': current_smape
+                    })], ignore_index=True)
+                except Exception as e:
+                    print(
+                        f"Error running model '{model_name}' config {i}: {e}")
+                    continue
 
-            # Compute mean sMAPE for this horizon.
             if smape_list:
                 mean_smape = np.mean(smape_list)
-                mean_smape_results.append(mean_smape)
                 print(f"Mean sMAPE for horizon {horizon}: {mean_smape:.3f}")
             else:
-                mean_smape_results.append(np.nan)
+                smape_list.append(np.nan)
                 print(f"No valid model runs for horizon {horizon}.")
 
+            # Optionally, plot the forecasts from the last experiment run.
+            try:
+                plot_forecasts(
+                    Y_train_df,
+                    Y_test_df,
+                    forecasts,
+                    model_instance,
+                    dataset_name,
+                    cfg.plot.default_plot)
+            except Exception as e:
+                print(f"Error plotting forecasts: {e}")
+        
         # Plot mean sMAPE vs. horizons.
-        plot_mean_smape(horizons, mean_smape_results, dataset_name)
+        plot_mean_smape(horizons, results, dataset_name)
 
-        # Optionally, plot the forecasts from the last experiment run.
-        try:
-            plot_forecasts(
-                Y_train_df,
-                Y_test_df,
-                forecasts,
-                model_instance,
-                dataset_name,
-                cfg.plot.default_plot)
-        except Exception as e:
-            print(f"Error plotting forecasts: {e}")
+        return results
+
 
 
 @hydra.main(config_path="conf", config_name="config.yaml")

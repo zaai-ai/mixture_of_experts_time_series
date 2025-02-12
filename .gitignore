@@ -166,3 +166,4 @@ cython_debug/
 data/
 lightning_logs/
 outputs/
+results.csv
