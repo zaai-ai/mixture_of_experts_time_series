@@ -6,6 +6,8 @@ import torch.nn as nn
 from neuralforecast.losses.pytorch import SMAPE
 from neuralforecast.common._base_windows import BaseWindows
 
+from .pooling_methods.methods import *
+
 
 class SimpleMoe(BaseWindows):
     """
@@ -85,7 +87,10 @@ class SimpleMoe(BaseWindows):
                  optimizer_kwargs = None,
                  lr_scheduler = None,
                  lr_scheduler_kwargs = None,
-                 dataloader_kwargs = None,            
+                 dataloader_kwargs = None,
+                 experts=None,
+                 gate=None,
+                 pooling=None, 
                  **trainer_kwargs):
 
         super(SimpleMoe, self).__init__(h=h,
@@ -120,37 +125,38 @@ class SimpleMoe(BaseWindows):
         self.h = h
         self.dropout = nn.Dropout(dropout)
 
-        self.experts = nn.ModuleList([
-            nn.Linear(self.input_size, self.h),
-            nn.Linear(self.input_size, self.h),
-            nn.Linear(self.input_size, self.h),
-            nn.Linear(self.input_size, self.h),
-            nn.Linear(self.input_size, self.h),
-            nn.Linear(self.input_size, self.h),
-               nn.Linear(self.input_size, self.h),
-            nn.Linear(self.input_size, self.h),
-            nn.Linear(self.input_size, self.h),   nn.Linear(self.input_size, self.h),
-            nn.Linear(self.input_size, self.h),
-            nn.Linear(self.input_size, self.h),
-        ])
+        if experts is not None:
+            self.experts = experts
+        else:
+            self.experts = nn.ModuleList([
+                nn.Linear(self.input_size, self.h),
+                nn.Linear(self.input_size, self.h),
+                nn.Linear(self.input_size, self.h),
+                nn.Linear(self.input_size, self.h),
+                nn.Linear(self.input_size, self.h),
+                nn.Linear(self.input_size, self.h),
+            ])
 
         self.num_experts = len(self.experts)
-        self.gate = nn.Linear(self.input_size, self.num_experts)
+
+        if gate is not None:
+            self.gate = gate
+        else:
+            self.gate = nn.Linear(self.input_size, self.num_experts)
         self.softmax = nn.Softmax(dim=1)
 
+        if pooling is not None:
+            self.pooling = pooling
+        else:
+            self.pooling = DensePooling(self.experts, self.gate, self.h)
 
-    def forward(self, windows_batch):
+
+    def forward(self, windows_batch):        
 
         insample_y = windows_batch['insample_y']
 
-        # Compute the gate
-        gate = self.gate(insample_y)
-        gate = self.softmax(gate)
-
         # Compute the weighted sum of the experts
-        weighted_sum = torch.zeros(insample_y.size(0), self.h, device=self.device)
-        for i in range(self.num_experts):
-            weighted_sum += gate[:, i].unsqueeze(1) * self.experts[i](insample_y)
+        weighted_sum = SparsePooling(self.experts, self.gate, self.h)(insample_y)
 
 
         return weighted_sum
