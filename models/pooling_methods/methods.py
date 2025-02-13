@@ -81,7 +81,7 @@ class SparsePooling(BasePooling):
         experts: List[nn.Module],
         gate: nn.Module,
         out_features: int,
-        k: int = 1,
+        k: int = 3,
         device: Optional[torch.device] = None
     ) -> None:
         """
@@ -96,20 +96,40 @@ class SparsePooling(BasePooling):
         self.k: int = k
 
     def forward(self, insample_y: torch.Tensor) -> torch.Tensor:
-        # Compute the gate logits.
+        # Compute the gate logits. Shape: [batch, num_experts]
         gate_logits: torch.Tensor = self.gate(insample_y)
 
         # Select the top-k experts for each sample.
+        # topk_values & topk_indices have shape: [batch, k]
         topk_values, topk_indices = torch.topk(gate_logits, self.k, dim=1)
-        
+
+        # Compute probabilities for the top-k experts using softmax.
         gate_probs: torch.Tensor = self.softmax(topk_values)
-        
-        weighted_sum: torch.Tensor = torch.zeros(
+
+        # Initialize the weighted sum output.
+        weighted_sum = torch.zeros(
             insample_y.size(0), self.out_features, device=insample_y.device
         )
-        # Weighted Sum over the top-k experts.
-        for i in range(self.k):
-            weighted_sum += topk_values[:, i].unsqueeze(1) * self.experts[topk_indices[:, i]](insample_y)
+        
+        num_experts = len(self.experts)
+        # Group contributions by expert.
+        # TODO: check if it is working
+        for expert_idx in range(num_experts):
+
+            # Create a mask of shape [batch, k] indicating where expert_idx was selected.
+            expert_mask = (topk_indices == expert_idx)
+            if expert_mask.sum() == 0:
+                continue  # This expert was not selected in any top-k.
+
+            # Sum the corresponding probabilities for each sample.
+            # This gives a weight for each sample for expert_idx.
+            expert_weight = (gate_probs * expert_mask.float()).sum(dim=1)  # Shape: [batch]
+
+            # Compute expert output for the entire batch.
+            expert_output = self.experts[expert_idx](insample_y)  # Shape: [batch, out_features]
+
+            # Add the weighted expert output.
+            weighted_sum += expert_output * expert_weight.unsqueeze(1)
 
         return weighted_sum
 

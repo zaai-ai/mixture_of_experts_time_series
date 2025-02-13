@@ -135,6 +135,10 @@ class SimpleMoe(BaseWindows):
                 nn.Linear(self.input_size, self.h),
                 nn.Linear(self.input_size, self.h),
                 nn.Linear(self.input_size, self.h),
+                 nn.Linear(self.input_size, self.h),
+                nn.Linear(self.input_size, self.h),
+                nn.Linear(self.input_size, self.h),
+                nn.Linear(self.input_size, self.h),
             ])
 
         self.num_experts = len(self.experts)
@@ -148,7 +152,7 @@ class SimpleMoe(BaseWindows):
         if pooling is not None:
             self.pooling = pooling
         else:
-            self.pooling = DensePooling(self.experts, self.gate, self.h)
+            self.pooling = SparsePooling(self.experts, self.gate, self.h)
 
 
     def forward(self, windows_batch):        
@@ -156,7 +160,7 @@ class SimpleMoe(BaseWindows):
         insample_y = windows_batch['insample_y']
 
         # Compute the weighted sum of the experts
-        weighted_sum = SparsePooling(self.experts, self.gate, self.h)(insample_y)
+        weighted_sum = self.pooling(insample_y)
 
 
         return weighted_sum
