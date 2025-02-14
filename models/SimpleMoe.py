@@ -5,9 +5,11 @@ import torch.nn as nn
 
 from neuralforecast.losses.pytorch import SMAPE
 from neuralforecast.common._base_windows import BaseWindows
+from neuralforecast.common._modules import RevIN
 
 from .pooling_methods.methods import *
 
+from neuralforecast.models.nbeats import NBEATS
 
 class SimpleMoe(BaseWindows):
     """
@@ -69,7 +71,7 @@ class SimpleMoe(BaseWindows):
                  stat_exog_list = None,
                  loss = SMAPE(),
                  valid_loss = None,
-                 max_steps: int = 3000,
+                 max_steps: int = 4000,
                  learning_rate: float = 1e-3,
                  num_lr_decays: int = -1,
                  early_stop_patience_steps: int =-1,
@@ -129,16 +131,16 @@ class SimpleMoe(BaseWindows):
             self.experts = experts
         else:
             self.experts = nn.ModuleList([
-                nn.Linear(self.input_size, self.h),
-                nn.Linear(self.input_size, self.h),
-                nn.Linear(self.input_size, self.h),
-                nn.Linear(self.input_size, self.h),
-                nn.Linear(self.input_size, self.h),
-                nn.Linear(self.input_size, self.h),
-                 nn.Linear(self.input_size, self.h),
-                nn.Linear(self.input_size, self.h),
-                nn.Linear(self.input_size, self.h),
-                nn.Linear(self.input_size, self.h),
+                NBEATS(self.h, self.input_size),
+                NBEATS(self.h, self.input_size),
+                NBEATS(self.h, self.input_size),
+                NBEATS(self.h, self.input_size),
+                NBEATS(self.h, self.input_size),
+                # NBEATS(self.h, self.input_size),
+                # NBEATS(self.h, self.input_size),
+                # NBEATS(self.h, self.input_size),
+                # NBEATS(self.h, self.input_size),
+                # NBEATS(self.h, self.input_size),
             ])
 
         self.num_experts = len(self.experts)
@@ -152,16 +154,25 @@ class SimpleMoe(BaseWindows):
         if pooling is not None:
             self.pooling = pooling
         else:
-            self.pooling = SparsePooling(self.experts, self.gate, self.h)
+            self.pooling = DensePooling(self.experts, self.gate, self.h)
 
 
-    def forward(self, windows_batch):        
+        self.rev = RevIN(1, affine=True)
+
+
+    def forward(self, windows_batch):
 
         insample_y = windows_batch['insample_y']
 
+        # windows_batch['insample_y'] = self.rev(insample_y, "norm")
+
+        # print(insample_y.shape)
+        # print(insample_y)
+
         # Compute the weighted sum of the experts
-        weighted_sum = self.pooling(insample_y)
+        out = self.pooling(windows_batch)
 
+        # out = self.rev(out, "denorm")
 
-        return weighted_sum
+        return out
         

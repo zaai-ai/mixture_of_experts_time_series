@@ -55,7 +55,9 @@ class DensePooling(BasePooling):
     (similar to your provided snippet), then each expert’s output is weighted
     accordingly and summed.
     """
-    def forward(self, insample_y: torch.Tensor) -> torch.Tensor:
+    def forward(self, windows_batch: dict) -> torch.Tensor:
+
+        insample_y = windows_batch['insample_y']
         # Compute the gate and normalize it.
         gate_logits: torch.Tensor = self.gate(insample_y)
         gate_probs: torch.Tensor = self.softmax(gate_logits)
@@ -66,7 +68,7 @@ class DensePooling(BasePooling):
         )
         # Sum over all experts.
         for i, expert in enumerate(self.experts):
-            weighted_sum += gate_probs[:, i].unsqueeze(1) * expert(insample_y)
+            weighted_sum += gate_probs[:, i].unsqueeze(1) * expert(windows_batch)
         return weighted_sum
 
 ###############################################################################
@@ -95,7 +97,10 @@ class SparsePooling(BasePooling):
         super(SparsePooling, self).__init__(experts, gate, out_features, device)
         self.k: int = k
 
-    def forward(self, insample_y: torch.Tensor) -> torch.Tensor:
+    def forward(self, windows_batch: dict) -> torch.Tensor:
+
+        insample_y = windows_batch['insample_y']
+
         # Compute the gate logits. Shape: [batch, num_experts]
         gate_logits: torch.Tensor = self.gate(insample_y)
 
@@ -126,7 +131,7 @@ class SparsePooling(BasePooling):
             expert_weight = (gate_probs * expert_mask.float()).sum(dim=1)  # Shape: [batch]
 
             # Compute expert output for the entire batch.
-            expert_output = self.experts[expert_idx](insample_y)  # Shape: [batch, out_features]
+            expert_output = self.experts[expert_idx](windows_batch)  # Shape: [batch, out_features]
 
             # Add the weighted expert output.
             weighted_sum += expert_output * expert_weight.unsqueeze(1)
@@ -161,7 +166,10 @@ class SoftPooling(BasePooling):
         super(SoftPooling, self).__init__(experts, gate, out_features, device)
         self.temperature: float = temperature
 
-    def forward(self, insample_y: torch.Tensor) -> torch.Tensor:
+    def forward(self, windows_batch: dict) -> torch.Tensor:
+
+        insample_y = windows_batch['insample_y']
+
         # Compute the gate logits and apply temperature-scaled softmax.
         gate_logits: torch.Tensor = self.gate(insample_y)
         soft_gate: torch.Tensor = F.softmax(gate_logits / self.temperature, dim=1)
@@ -171,5 +179,5 @@ class SoftPooling(BasePooling):
         )
         # Sum over all experts.
         for i, expert in enumerate(self.experts):
-            weighted_sum += soft_gate[:, i].unsqueeze(1) * expert(insample_y)
+            weighted_sum += soft_gate[:, i].unsqueeze(1) * expert(windows_batch)
         return weighted_sum

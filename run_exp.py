@@ -7,6 +7,10 @@ from datasetsforecast.m3 import M3
 from neuralforecast.losses.pytorch import SMAPE
 import hydra
 from omegaconf import DictConfig
+import torch.nn as nn
+
+### callback
+from models.callbacks.gate_distribution import GateDistributionCallback
 
 # Import your model classes (here we assume the module name matches the
 # model name)
@@ -54,7 +58,8 @@ def get_instance(
         model_name: str,
         model_config: DictConfig,
         horizon: int,
-        config_idx: int = 0):
+        config_idx: int = 0,
+        **kwargs):
     """
     For a given model configuration, initialize the model instance.
     Returns the model instance.
@@ -79,6 +84,7 @@ def get_instance(
             valid_loss=eval(valid_loss_str)(),
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
+            callbacks= [GateDistributionCallback(**kwargs)],
         )
     elif model_name.lower() == "nbeats":
         input_size_val = get_config_value(params.input_size, config_idx)
@@ -151,7 +157,7 @@ def run_model_experiment(
 
     # Initialize model instance based on model_name.
     model_instance = get_instance(
-        model_name, model_config, horizon, config_idx)
+        model_name, model_config, horizon, config_idx, training_df=Y_train_df)
 
     # Instantiate NeuralForecast and run forecast.
     fcst = NeuralForecast(models=[model_instance], freq=freq)

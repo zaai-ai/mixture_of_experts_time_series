@@ -14,21 +14,21 @@ models:
       dropout: 0.1
       loss: "SMAPE"         # Single string value (will be eval'd to a loss instance)
       valid_loss: "SMAPE"    # Single string value
-      early_stop_patience_steps: 3  # A single number
+      early_stop_patience_steps: 10  # A single number
       batch_size: 32
   nhits:
     params:
       input_size: 24 
       loss: "SMAPE"         # Single string value (will be eval'd to a loss instance)
       valid_loss: "SMAPE"    # Single string value
-      early_stop_patience_steps: 3  # A single number
+      early_stop_patience_steps: 10  # A single number
       batch_size: 32
   nbeats:
     params:
       input_size: 24
       loss: "SMAPE"         # Single string value (will be eval'd to a loss instance)
       valid_loss: "SMAPE"    # Single string value
-      early_stop_patience_steps: 3  # A single number
+      early_stop_patience_steps: 10  # A single number
       batch_size: 32
 
 data:
