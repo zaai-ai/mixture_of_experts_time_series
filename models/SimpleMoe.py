@@ -5,11 +5,12 @@ import torch.nn as nn
 
 from neuralforecast.losses.pytorch import SMAPE
 from neuralforecast.common._base_windows import BaseWindows
-from neuralforecast.common._modules import RevIN
+from neuralforecast.common._modules import RevIN, MLP
 
 from .pooling_methods.methods import *
 
 from neuralforecast.models.nbeats import NBEATS
+
 
 class SimpleMoe(BaseWindows):
     """
@@ -148,13 +149,19 @@ class SimpleMoe(BaseWindows):
         if gate is not None:
             self.gate = gate
         else:
-            self.gate = nn.Linear(self.input_size, self.num_experts)
+            self.gate = MLP(
+                self.input_size, 
+                self.num_experts,
+                activation="Sigmoid",
+                hidden_size=16, 
+                num_layers=1,
+                dropout=0.1)
         self.softmax = nn.Softmax(dim=1)
 
         if pooling is not None:
             self.pooling = pooling
         else:
-            self.pooling = DensePooling(self.experts, self.gate, self.h)
+            self.pooling = SparsePooling(self.experts, self.gate, self.h)
 
 
         self.rev = RevIN(1, affine=True)
@@ -165,9 +172,11 @@ class SimpleMoe(BaseWindows):
         insample_y = windows_batch['insample_y']
 
         # windows_batch['insample_y'] = self.rev(insample_y, "norm")
+        
 
         # print(insample_y.shape)
         # print(insample_y)
+        # print(windows_batch['insample_y'])
 
         # Compute the weighted sum of the experts
         out = self.pooling(windows_batch)

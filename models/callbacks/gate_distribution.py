@@ -32,8 +32,8 @@ class GateDistributionCallback(Callback):
             gate_2 = gate_dist.detach().cpu().numpy()
             gate_dist = pl_module.softmax(gate_dist)
             gate_dist = gate_dist.detach().cpu().numpy()
-            print(gate_dist)
-            print(gate_2)
+            # print(gate_dist)
+            # print(gate_2)
             gate_dist = gate_dist.reshape(-1, 1)
 
             gate_df = pd.DataFrame(gate_dist, columns=['gate'])
