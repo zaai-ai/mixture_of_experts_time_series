@@ -149,11 +149,12 @@ class SimpleMoe(BaseWindows):
         if gate is not None:
             self.gate = gate
         else:
+            # self.gate = nn.Linear(self.input_size, self.num_experts)
             self.gate = MLP(
                 self.input_size, 
                 self.num_experts,
                 activation="Sigmoid",
-                hidden_size=16, 
+                hidden_size=64, 
                 num_layers=1,
                 dropout=0.1)
         self.softmax = nn.Softmax(dim=1)

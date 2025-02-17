@@ -36,7 +36,7 @@ data:
     directory: "./data/m3"
     group: "Monthly"
     # List of horizons to test (e.g. forecasting 12, 18, and 24 steps ahead)
-    horizons: [12, 18, 24]
+    horizons: [18]
 
 forecast:
   default_forecast:
