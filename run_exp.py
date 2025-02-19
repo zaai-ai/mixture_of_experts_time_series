@@ -4,10 +4,11 @@ import numpy as np
 from neuralforecast import NeuralForecast
 from neuralforecast.losses.numpy import smape
 from datasetsforecast.m3 import M3    
-from neuralforecast.losses.pytorch import SMAPE
+from neuralforecast.losses.pytorch import SMAPE, HuberLoss
 import hydra
 from omegaconf import DictConfig
 import torch.nn as nn
+from pytorch_lightning.callbacks import LearningRateMonitor
 
 ### callback
 from models.callbacks.gate_distribution import GateDistributionCallback
@@ -85,7 +86,8 @@ def get_instance(
             valid_loss=eval(valid_loss_str)(),
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
-            # scaler_type='standard',
+            # scaler_type='standard',     
+            # callbacks=[LearningRateMonitor(logging_interval='step')],
             callbacks= [ SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
         )
     elif model_name.lower() == "nbeats":
@@ -132,10 +134,10 @@ def calculate_smape(Y_test_df, Y_hat_df, forecast_col):
     y_true = Y_test_df['y'].values
     try:
         y_hat = Y_hat_df[forecast_col].values
-    except KeyError:
+    except KeyError as exc:
         raise KeyError(
-            f"Forecast column '{forecast_col}' not found in predictions!")
-
+            f"Forecast column '{forecast_col}' not found in predictions!") from exc
+   
     n_series = Y_test_df['unique_id'].nunique()
     try:
         y_true = y_true.reshape(n_series, -1)

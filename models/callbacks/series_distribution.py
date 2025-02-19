@@ -34,6 +34,10 @@ class SeriesDistributionCallback(Callback):
 
                 # Extract the last 24 values.
                 inputs = df_series['y'].values[-24:]
+
+                # Normalize the inputs using the training statistics.
+                # inputs = (inputs - np.mean(inputs)) / np.std(inputs)
+
                 # Create an input tensor of shape (1, 24) and move it to the model's device.
                 input_tensor = torch.tensor(inputs, device=pl_module.device).float().unsqueeze(0)
 
@@ -95,7 +99,7 @@ class SeriesDistributionCallback(Callback):
             ax.legend(handles=expert_patches, title="Experts", loc="upper right", bbox_to_anchor=(1.2, 1))
 
             plt.tight_layout()
-            plt.savefig('./callback_images/' + str(self.counter) + '.png')
+            # plt.savefig('./callback_images/' + str(self.counter) + '.png')
             plt.show()
             self.counter += 1
             # plt.close(fig)
