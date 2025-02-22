@@ -220,6 +220,88 @@ class SimpleMoe(BaseWindows):
 
         self.rev = RevIN(1, affine=True)
 
+    def training_step(self, batch, batch_idx):
+        # Create and normalize windows [Ws, L+H, C]
+        windows = self._create_windows(batch, step="train")
+        y_idx = batch["y_idx"]
+        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, y_idx])
+        windows = self._normalization(windows=windows, y_idx=y_idx)
+
+        # Parse windows
+        (
+            insample_y,
+            insample_mask,
+            outsample_y,
+            outsample_mask,
+            hist_exog,
+            futr_exog,
+            stat_exog,
+        ) = self._parse_windows(batch, windows)
+
+        windows_batch = dict(
+            insample_y=insample_y,  # [Ws, L]
+            insample_mask=insample_mask,  # [Ws, L]
+            futr_exog=futr_exog,  # [Ws, L + h, F]
+            hist_exog=hist_exog,  # [Ws, L, X]
+            stat_exog=stat_exog,
+        )  # [Ws, S]
+
+        # Model Predictions
+        output = self(windows_batch)
+        if self.loss.is_distribution_output:
+            _, y_loc, y_scale = self._inv_normalization(
+                y_hat=outsample_y, temporal_cols=batch["temporal_cols"], y_idx=y_idx
+            )
+            outsample_y = original_outsample_y
+            distr_args = self.loss.scale_decouple(
+                output=output, loc=y_loc, scale=y_scale
+            )
+            loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
+        else:
+            loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
+            
+        probs = self.gate(windows_batch['insample_y'])
+        gate_value = self.softmax(probs)
+        
+        one_hot_selection = torch.zeros_like(gate_value).scatter_(1, gate_value.argmax(dim=1, keepdim=True), 1)
+        
+        # Compute expert selection fractions f_i
+        T = insample_y.shape[1]  # Time steps
+        K = gate_value.shape[1]  # Number of experts
+        f_i = torch.mean(one_hot_selection, dim=0)  # (Num_Experts,)
+
+        f_i = f_i / K
+
+        # Compute routing probabilities r_i
+        r_i = torch.mean(gate_value, dim=0)  # Same shape as f_i (Num_Experts,)
+
+        # Compute auxiliary loss
+        aux_loss = torch.sum(f_i * r_i) * self.num_experts
+
+        # Combine with primary loss
+        loss = loss + aux_loss * 300
+        
+        # if aux_loss < 0.2:
+        #     print(f"probs: {gate_value}")
+            
+        
+        if torch.isnan(loss):
+            print("Model Parameters", self.hparams)
+            print("insample_y", torch.isnan(insample_y).sum())
+            print("outsample_y", torch.isnan(outsample_y).sum())
+            print("output", torch.isnan(output).sum())
+            raise Exception("Loss is NaN, training stopped.")
+
+        self.log(
+            "train_loss",
+            loss.detach().item(),
+            batch_size=outsample_y.size(0),
+            prog_bar=True,
+            on_epoch=True,
+        )
+        self.train_trajectories.append((self.global_step, loss.detach().item()))
+        return loss
+
     def forward(self, windows_batch):
 
         # insample_y = windows_batch['insample_y']
@@ -251,14 +333,6 @@ class SimpleMoe(BaseWindows):
 
         # # # Store entropy loss for later modification in loss
         # AuxLoss.current_entropy_loss = entropy_loss
-
-        gate_probs = self.softmax(self.gate(insample_y)) ## TODO:its being calculated twice, change it
-
-        #  # Compute entropy loss to prevent gate collapse
-        entropy_loss = -torch.sum(gate_probs * torch.log(gate_probs + 1e-8), dim=1).mean()
-
-        # # Store entropy loss for later modification in loss
-        AuxLoss.current_entropy_loss = entropy_loss
 
         # out = self.rev(out, "denorm")
 
