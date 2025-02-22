@@ -252,6 +252,14 @@ class SimpleMoe(BaseWindows):
         # # # Store entropy loss for later modification in loss
         # AuxLoss.current_entropy_loss = entropy_loss
 
+        gate_probs = self.softmax(self.gate(insample_y)) ## TODO:its being calculated twice, change it
+
+        #  # Compute entropy loss to prevent gate collapse
+        entropy_loss = -torch.sum(gate_probs * torch.log(gate_probs + 1e-8), dim=1).mean()
+
+        # # Store entropy loss for later modification in loss
+        AuxLoss.current_entropy_loss = entropy_loss
+
         # out = self.rev(out, "denorm")
 
         return out2

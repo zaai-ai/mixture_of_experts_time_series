@@ -102,7 +102,7 @@ def get_instance(
             scaler_type='minmax',     
             # callbacks=[LearningRateMonitor(logging_interval='step')],
             callbacks= [ checkpoint_callback, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
-        )
+ )
     elif model_name.lower() == "nbeats":
         input_size_val = get_config_value(params.input_size, config_idx)
         loss_str = get_config_value(params.loss, config_idx)
