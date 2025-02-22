@@ -4,14 +4,17 @@ import numpy as np
 from neuralforecast import NeuralForecast
 from neuralforecast.losses.numpy import smape
 from datasetsforecast.m3 import M3    
-from neuralforecast.losses.pytorch import SMAPE
+from neuralforecast.losses.pytorch import SMAPE, HuberLoss
 import hydra
 from omegaconf import DictConfig
 import torch.nn as nn
+from pytorch_lightning.callbacks import LearningRateMonitor
 
 ### callback
 from models.callbacks.gate_distribution import GateDistributionCallback
 from models.callbacks.series_distribution import SeriesDistributionCallback
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from models.callbacks.series_similarity import SeriesSimilarityCallback
 
 # Import your model classes (here we assume the module name matches the
 # model name)
@@ -66,6 +69,14 @@ def get_instance(
     Returns the model instance.
     """
     params = model_config.params
+    checkpoint_callback = ModelCheckpoint(
+        monitor="ptl/val_loss",
+        mode="min", 
+        save_top_k=1,
+        verbose=True,
+        filename="best_model",
+        dirpath="checkpoints/",
+    )
 
     # Initialize model instance based on model_name.
     if model_name.lower() == "simplemoe":
@@ -85,8 +96,12 @@ def get_instance(
             valid_loss=eval(valid_loss_str)(),
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
+            enable_checkpointing=True,
             # scaler_type='standard',
-            callbacks= [ SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
+            # callbacks= [ SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
+            scaler_type='minmax',     
+            # callbacks=[LearningRateMonitor(logging_interval='step')],
+            callbacks= [ checkpoint_callback, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
         )
     elif model_name.lower() == "nbeats":
         input_size_val = get_config_value(params.input_size, config_idx)
@@ -102,8 +117,9 @@ def get_instance(
             valid_loss=eval(valid_loss_str)(),
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
+            callbacks=[checkpoint_callback],
+            enable_checkpointing=True,
             # scaler_type='standard',
-
         )
     elif model_name.lower() == "nhits":
         input_size_val = get_config_value(params.input_size, config_idx)
@@ -119,12 +135,14 @@ def get_instance(
             valid_loss=eval(valid_loss_str)(),
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
+            callbacks=[checkpoint_callback],
+            enable_checkpointing=True,
             # scaler_type='standard',
         )
 
     else:
         raise NotImplementedError(f"Model '{model_name}' is not implemented.")
-    return model_instance
+    return model_instance, checkpoint_callback
 
 
 def calculate_smape(Y_test_df, Y_hat_df, forecast_col):
@@ -132,10 +150,10 @@ def calculate_smape(Y_test_df, Y_hat_df, forecast_col):
     y_true = Y_test_df['y'].values
     try:
         y_hat = Y_hat_df[forecast_col].values
-    except KeyError:
+    except KeyError as exc:
         raise KeyError(
-            f"Forecast column '{forecast_col}' not found in predictions!")
-
+            f"Forecast column '{forecast_col}' not found in predictions!") from exc
+   
     n_series = Y_test_df['unique_id'].nunique()
     try:
         y_true = y_true.reshape(n_series, -1)
@@ -144,6 +162,20 @@ def calculate_smape(Y_test_df, Y_hat_df, forecast_col):
         raise ValueError("Error reshaping arrays") from e
 
     return smape(y_true, y_hat)
+
+def plot_history(history, model_name):
+    print(history)
+    
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(history['train_loss'], label='Train Loss')
+    plt.plot(history['ptl/val_loss'], label='Validation Loss')
+    plt.xlabel("Epoch", fontsize=14)
+    plt.ylabel("Loss", fontsize=14)
+    plt.title(f"Training and Validation Loss ({model_name})", fontsize=16)
+    plt.grid(True)
+    plt.legend()
+    plt.show()
 
 def run_model_experiment(
     model_name: str,
@@ -160,13 +192,20 @@ def run_model_experiment(
     """
 
     # Initialize model instance based on model_name.
-    model_instance = get_instance(
+    model_instance, checkpoint_callback = get_instance(
         model_name, model_config, horizon, config_idx, training_df=Y_train_df)
 
     # Instantiate NeuralForecast and run forecast.
     fcst = NeuralForecast(models=[model_instance], freq=freq)
     fcst.fit(df=Y_train_df, static_df=None, val_size=horizon)
+    
+    # fcst = SimpleMoe.load_from_checkpoint(checkpoint_callback.best_model_path + 'checkpoints/best_model.ckpt')
+    # fcst = NeuralForecast(models=[fcstModel], freq=freq)
     forecasts = fcst.predict(futr_df=Y_test_df)
+
+    
+    # plot the training loss and validation loss
+    # plot_history(..., model_name)
 
     # Extract forecast column (assumes column is named after model class)
     forecast_col = model_instance.__class__.__name__

@@ -167,3 +167,5 @@ data/
 lightning_logs/
 outputs/
 results.csv
+checkpoints/
+callback_images/

@@ -6,10 +6,56 @@ import torch.nn as nn
 from neuralforecast.losses.pytorch import SMAPE
 from neuralforecast.common._base_windows import BaseWindows
 from neuralforecast.common._modules import RevIN, MLP
+from neuralforecast.losses.pytorch import BasePointLoss
 
 from .pooling_methods.methods import *
 
 from neuralforecast.models.nbeats import NBEATS
+from typing import Union
+
+
+# %% ../../nbs/losses.pytorch.ipynb 6
+def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    """
+    Auxiliary funtion to handle divide by 0
+    """
+    div = a / b
+    return torch.nan_to_num(div, nan=0.0, posinf=0.0, neginf=0.0)
+
+# %% ../../nbs/losses.pytorch.ipynb 7
+def _weighted_mean(losses, weights):
+    """
+    Compute weighted mean of losses per datapoint.
+    """
+    return _divide_no_nan(torch.sum(losses * weights), torch.sum(weights))
+
+
+class AuxLoss(BasePointLoss):
+
+    current_entropy_loss = 0.0
+
+    def __init__(self, delta: float = 1.0, horizon_weight=None, lambda_entropy=100):
+        super(AuxLoss, self).__init__(
+            horizon_weight=horizon_weight, outputsize_multiplier=1, output_names=[""]
+        )
+        self.delta = delta
+        self.lambda_entropy = lambda_entropy
+
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+    ):
+        losses = F.huber_loss(y, y_hat, reduction="none", delta=self.delta)
+        balancing_loss = self.lambda_entropy * AuxLoss.current_entropy_loss
+
+        losses = losses + balancing_loss
+
+        # print(balancing_loss, AuxLoss.current_entropy_loss, self.lambda_entropy)
+
+        weights = self._compute_weights(y=y, mask=mask)
+        return _weighted_mean(losses=losses, weights=weights)
 
 
 class SimpleMoe(BaseWindows):
@@ -72,7 +118,7 @@ class SimpleMoe(BaseWindows):
                  stat_exog_list = None,
                  loss = SMAPE(),
                  valid_loss = None,
-                 max_steps: int = 4000,
+                 max_steps: int = 6300,
                  learning_rate: float = 1e-3,
                  num_lr_decays: int = -1,
                  early_stop_patience_steps: int =-1,
@@ -93,8 +139,14 @@ class SimpleMoe(BaseWindows):
                  dataloader_kwargs = None,
                  experts=None,
                  gate=None,
-                 pooling=None, 
+                 pooling=None,
+                 aux_loss=False,
+                 aux_loss_weight=1000,
                  **trainer_kwargs):
+        
+        if aux_loss:
+            loss = AuxLoss(lambda_entropy=aux_loss_weight)
+            valid_loss = AuxLoss(lambda_entropy=aux_loss_weight)
 
         super(SimpleMoe, self).__init__(h=h,
                                    input_size=input_size,
@@ -123,6 +175,7 @@ class SimpleMoe(BaseWindows):
                                    lr_scheduler_kwargs=lr_scheduler_kwargs,
                                    dataloader_kwargs=dataloader_kwargs,
                                    **trainer_kwargs)
+        
 
         self.input_size = input_size
         self.h = h
@@ -167,10 +220,9 @@ class SimpleMoe(BaseWindows):
 
         self.rev = RevIN(1, affine=True)
 
-
     def forward(self, windows_batch):
 
-        insample_y = windows_batch['insample_y']
+        # insample_y = windows_batch['insample_y']
 
         # windows_batch['insample_y'] = self.rev(insample_y, "norm")
         
@@ -180,9 +232,27 @@ class SimpleMoe(BaseWindows):
         # print(windows_batch['insample_y'])
 
         # Compute the weighted sum of the experts
-        out = self.pooling(windows_batch)
+        
+        # out1 = self.shared_expert(windows_batch)
+        
+        out2 = self.pooling(windows_batch)
+        
+        
+        # gate_value = self.shared_gate(windows_batch['insample_y'])
+        # out1_weighted = out1 * gate_value
+        # out = out1_weighted + out2  
+        
+        # out = self.pooling(windows_batch)
+
+        # gate_probs = self.softmax(self.gate(insample_y)) ## TODO:its being calculated twice, change it
+
+        # #  # Compute entropy loss to prevent gate collapse
+        # entropy_loss = -torch.sum(gate_probs * torch.log(gate_probs + 1e-8), dim=1).mean()
+
+        # # # Store entropy loss for later modification in loss
+        # AuxLoss.current_entropy_loss = entropy_loss
 
         # out = self.rev(out, "denorm")
 
-        return out
+        return out2
         
