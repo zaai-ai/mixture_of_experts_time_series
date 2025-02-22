@@ -13,6 +13,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 ### callback
 from models.callbacks.gate_distribution import GateDistributionCallback
 from models.callbacks.series_distribution import SeriesDistributionCallback
+from models.callbacks.series_similarity import SeriesSimilarityCallback
 
 # Import your model classes (here we assume the module name matches the
 # model name)
@@ -86,9 +87,9 @@ def get_instance(
             valid_loss=eval(valid_loss_str)(),
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
-            # scaler_type='standard',     
+            scaler_type='minmax',     
             # callbacks=[LearningRateMonitor(logging_interval='step')],
-            callbacks= [ SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
+            callbacks= [ SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
         )
     elif model_name.lower() == "nbeats":
         input_size_val = get_config_value(params.input_size, config_idx)

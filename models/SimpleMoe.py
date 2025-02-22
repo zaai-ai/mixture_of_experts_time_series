@@ -141,7 +141,7 @@ class SimpleMoe(BaseWindows):
                  gate=None,
                  pooling=None,
                  aux_loss=True,
-                 aux_loss_weight=10,
+                 aux_loss_weight=1000,
                  **trainer_kwargs):
         
         if aux_loss:
