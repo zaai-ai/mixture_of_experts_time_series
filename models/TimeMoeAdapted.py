@@ -86,7 +86,7 @@ class TimeMoeConfig():
             rope_theta: int = 10000,
             attention_dropout: float = 0.0,
             apply_aux_loss: bool = True,
-            router_aux_loss_factor: float = 0.02,
+            router_aux_loss_factor: float = 20.0,
             tie_word_embeddings: bool = False,
             **kwargs,
     ):
@@ -539,7 +539,7 @@ class TimeMoeAdapted(BaseWindows):
                  inference_windows_batch_size: int = 32,
                  start_padding_enabled: bool = False,
                  step_size: int = 1,
-                 scaler_type: str = 'robust',
+                 scaler_type: str = 'invariant',
                  random_seed: int = 1,
                  drop_last_loader: bool = False,
                  optimizer = None,
@@ -547,7 +547,7 @@ class TimeMoeAdapted(BaseWindows):
                  lr_scheduler = None,
                  lr_scheduler_kwargs = None,
                  dataloader_kwargs = None,
-                 hidden_size=16,
+                 hidden_size=8,
                  experts=None,
                  gate=None,
                  pooling=None, 
@@ -598,6 +598,7 @@ class TimeMoeAdapted(BaseWindows):
         self.norm = TimeMoeRMSNorm(self.hidden_size)
         
         self.output_layer = nn.Linear(self.hidden_size, self.h, bias=False)
+        
         
         self.attention_mask = None
         
@@ -724,16 +725,18 @@ class TimeMoeAdapted(BaseWindows):
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
             
-        # Compute auxiliary loss
-        aux_loss = self.load_balancing_loss_func(
-                self.all_router_logits, 
-                self.config.num_experts_per_tok, 
-                self.config.num_experts,
-                # self.attention_mask
-        )
+            
+        if self.config.apply_aux_loss:
+            # Compute auxiliary loss
+            aux_loss = self.load_balancing_loss_func(
+                    self.all_router_logits, 
+                    self.config.num_experts_per_tok, 
+                    self.config.num_experts,
+                    # self.attention_mask
+            )
 
-        # Combine with primary loss
-        loss = loss + aux_loss * 20
+            # Combine with primary loss
+            loss = loss + aux_loss * self.config.router_aux_loss_factor
         
         # print(f"loss: {loss}")
         # print(f"aux_loss: {aux_loss}")
@@ -768,7 +771,7 @@ class TimeMoeAdapted(BaseWindows):
             input_embeds.shape,
             input_embeds,
             past_key_values_length
-        )
+        )         
          
         hidden_states = input_embeds
         
