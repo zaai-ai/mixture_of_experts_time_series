@@ -19,8 +19,11 @@ from models.callbacks.series_similarity import SeriesSimilarityCallback
 # Import your model classes (here we assume the module name matches the
 # model name)
 from models.SimpleMoe import SimpleMoe
+from models.TimeMoeAdapted import TimeMoeAdapted
 from neuralforecast.models import NHITS
 from neuralforecast.models import NBEATS
+import traceback
+
 
 
 def load_dataset(dataset_name: str, dataset_cfg: DictConfig):
@@ -92,14 +95,14 @@ def get_instance(
             input_size=input_size_val,
             dropout=dropout_val,
             # e.g., eval("SMAPE")() creates an instance of SMAPE.
-            loss=eval(loss_str)(),
+            loss=eval(valid_loss_str)(),
             valid_loss=eval(valid_loss_str)(),
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
             enable_checkpointing=True,
             # scaler_type='standard',
             # callbacks= [ SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
-            scaler_type='minmax',     
+            # scaler_type='minmax',     
             # callbacks=[LearningRateMonitor(logging_interval='step')],
             callbacks= [ checkpoint_callback, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
  )
@@ -139,7 +142,25 @@ def get_instance(
             enable_checkpointing=True,
             # scaler_type='standard',
         )
-
+    elif model_name.lower() == "timemoeadapted":
+        input_size_val = get_config_value(params.input_size, config_idx)
+        dropout_val = get_config_value(params.dropout, config_idx)
+        loss_str = get_config_value(params.loss, config_idx)
+        valid_loss_str = get_config_value(params.valid_loss, config_idx)
+        early_stop = get_config_value(
+            params.early_stop_patience_steps, config_idx)
+        batch_size_val = get_config_value(params.batch_size, config_idx)
+        model_instance = TimeMoeAdapted(
+            h=horizon,
+            input_size=input_size_val,
+            dropout=dropout_val,
+            loss=eval(loss_str)(delta=2.0),
+            valid_loss=eval(valid_loss_str)(),
+            early_stop_patience_steps=early_stop,
+            batch_size=batch_size_val,
+            enable_checkpointing=True,
+            # callbacks= [ checkpoint_callback, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
+        )
     else:
         raise NotImplementedError(f"Model '{model_name}' is not implemented.")
     return model_instance, checkpoint_callback
@@ -354,6 +375,7 @@ def run_exp(cfg: DictConfig):
                 except Exception as e:
                     print(
                         f"Error running model '{model_name}' config {i}: {e}")
+                    traceback.print_exc()
                     continue
 
             if smape_list:
