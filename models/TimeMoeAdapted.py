@@ -76,7 +76,7 @@ class TimeMoeConfig():
             num_attention_heads: int = 4,
             num_key_value_heads: int = None,
             hidden_act: str = "silu",
-            num_experts_per_tok: int = 2,
+            num_experts_per_tok: int = 1,
             num_experts: int = 8,
             max_position_embeddings: int = 32768,
             initializer_range: float = 0.02,
@@ -591,7 +591,7 @@ class TimeMoeAdapted(BaseWindows):
         self.embed_layer = TimeMoeInputEmbedding(input_size, hidden_size=self.hidden_size)
 
         self.layers = nn.ModuleList(
-            [TimeMoeDecoderLayer(self.config, layer_index=i) for i in range(1)]
+            [TimeMoeDecoderLayer(self.config, layer_index=i) for i in range(2)]
         )
         
         # self._attn_implementation = config._attn_implementation

@@ -185,7 +185,7 @@ def get_instance(
             h=horizon,
             input_size=input_size_val,
             loss=eval(loss_str)(),
-            valid_loss=eval(valid_loss_str)(),
+            valid_loss=eval(loss_str)(),
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
             callbacks=[checkpoint_callback],
@@ -481,7 +481,7 @@ def run_exp(cfg: DictConfig):
         # Plot mean sMAPE vs. horizons.
         plot_mean_smape(horizons, results, dataset_name)
 
-        return results
+        return results, forecasts
 
 
 
