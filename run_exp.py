@@ -7,8 +7,9 @@ from functools import partial
 
 from neuralforecast import NeuralForecast
 from neuralforecast.losses.numpy import smape
-from datasetsforecast.m3 import M3    
-from neuralforecast.losses.pytorch import SMAPE, HuberLoss
+from datasetsforecast.m3 import M3  
+from datasetsforecast.m4 import M4  
+from neuralforecast.losses.pytorch import SMAPE, HuberLoss, MSE
 import hydra
 from omegaconf import DictConfig
 import torch.nn as nn
@@ -101,6 +102,11 @@ def load_dataset(dataset_name: str, dataset_cfg: DictConfig):
         return M3.load(
             directory=dataset_cfg.directory,
             group=dataset_cfg.group)[0]
+    elif dataset_name == "m4_monthly":
+        print("Loading m4_monthly dataset...")
+        return M4.load(
+            directory=dataset_cfg.directory,
+            group=dataset_cfg.group)[0]
     else:
         raise ValueError(
             f"Loading method for dataset '{dataset_name}' is not defined.")
@@ -172,7 +178,7 @@ def get_instance(
             # callbacks= [ SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
             # scaler_type='minmax',     
             # callbacks=[LearningRateMonitor(logging_interval='step')],
-            callbacks= [ checkpoint_callback, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
+            callbacks= [ checkpoint_callback] #, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
  )
     elif model_name.lower() == "nbeats":
         input_size_val = get_config_value(params.input_size, config_idx)
@@ -355,7 +361,7 @@ def plot_forecasts(
     forecasts = forecasts.reset_index(drop=False)
 
     # Keep last 24 months from train before concatenating
-    train_last_24 = Y_train_df.groupby('unique_id').tail(24)
+    train_last_24 = Y_train_df.groupby('unique_id').tail(256)
 
     # Combine training and test data for the ground truth
     gt_df = pd.concat([train_last_24, Y_test_df], axis=0)

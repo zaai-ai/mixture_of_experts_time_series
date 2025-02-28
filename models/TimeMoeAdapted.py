@@ -69,16 +69,16 @@ class TimeMoeConfig():
     def __init__(
             self,
             input_size: int = 1,
-            hidden_size: int = 4096,
-            intermediate_size: int = 22016,
+            hidden_size: int = 128, # 4096
+            intermediate_size: int = 4000, # 22016
             horizon_lengths: List[int] = 1,
-            num_hidden_layers: int = 8,
-            num_attention_heads: int = 4,
+            num_hidden_layers: int = 1, # 8 in the paper
+            num_attention_heads: int = 2,
             num_key_value_heads: int = None,
             hidden_act: str = "silu",
             num_experts_per_tok: int = 1,
             num_experts: int = 8,
-            max_position_embeddings: int = 32768,
+            max_position_embeddings: int = 32768, # 32768
             initializer_range: float = 0.02,
             rms_norm_eps: float = 1e-6,
             use_cache: bool = True,
@@ -537,9 +537,9 @@ class TimeMoeAdapted(BaseWindows):
                  valid_batch_size: int = 32,
                  windows_batch_size: int = 32,
                  inference_windows_batch_size: int = 32,
-                 start_padding_enabled: bool = False,
+                 start_padding_enabled: bool = True,
                  step_size: int = 1,
-                 scaler_type: str = 'invariant',
+                 scaler_type: str = 'robust', #minmax
                  random_seed: int = 1,
                  drop_last_loader: bool = False,
                  optimizer = None,
@@ -547,7 +547,7 @@ class TimeMoeAdapted(BaseWindows):
                  lr_scheduler = None,
                  lr_scheduler_kwargs = None,
                  dataloader_kwargs = None,
-                 hidden_size=8,
+                 hidden_size=16,
                  experts=None,
                  gate=None,
                  pooling=None, 
@@ -591,14 +591,13 @@ class TimeMoeAdapted(BaseWindows):
         self.embed_layer = TimeMoeInputEmbedding(input_size, hidden_size=self.hidden_size)
 
         self.layers = nn.ModuleList(
-            [TimeMoeDecoderLayer(self.config, layer_index=i) for i in range(2)]
+            [TimeMoeDecoderLayer(self.config, layer_index=i) for i in range(1)]
         )
         
         # self._attn_implementation = config._attn_implementation
         self.norm = TimeMoeRMSNorm(self.hidden_size)
         
         self.output_layer = nn.Linear(self.hidden_size, self.h, bias=False)
-        
         
         self.attention_mask = None
         
@@ -734,13 +733,12 @@ class TimeMoeAdapted(BaseWindows):
                     self.config.num_experts,
                     # self.attention_mask
             )
+            
+            # print(f"aux_loss : {aux_loss * self.config.router_aux_loss_factor}")
 
             # Combine with primary loss
             loss = loss + aux_loss * self.config.router_aux_loss_factor
-        
-        # print(f"loss: {loss}")
-        # print(f"aux_loss: {aux_loss}")
-        # print(f"aux_loss : {aux_loss * 20}")
+
         
         
         if torch.isnan(loss):
@@ -765,7 +763,6 @@ class TimeMoeAdapted(BaseWindows):
         past_key_values_length = 0
         input_embeds = self.embed_layer(windows_batch['insample_y'])
         
-        
         self.attention_mask = _prepare_4d_causal_attention_mask(
             None, ## check this later
             input_embeds.shape,
@@ -786,11 +783,9 @@ class TimeMoeAdapted(BaseWindows):
             
             self.all_router_logits += (layer_outputs[-1],)
             self.all_attention_weights += (layer_outputs[1],)
-            
+                    
         hidden_states = self.norm(hidden_states)
-        
-        
         out = self.output_layer(hidden_states)
-        
+
         return out
         
