@@ -86,7 +86,7 @@ class TimeMoeConfig():
             rope_theta: int = 10000,
             attention_dropout: float = 0.0,
             apply_aux_loss: bool = True,
-            router_aux_loss_factor: float = 20.0,
+            router_aux_loss_factor: float = 2.0,
             tie_word_embeddings: bool = False,
             **kwargs,
     ):

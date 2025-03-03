@@ -104,9 +104,14 @@ def load_dataset(dataset_name: str, dataset_cfg: DictConfig):
             group=dataset_cfg.group)[0]
     elif dataset_name == "m4_monthly":
         print("Loading m4_monthly dataset...")
-        return M4.load(
+        df = M4.load(
             directory=dataset_cfg.directory,
             group=dataset_cfg.group)[0]
+        
+        # Convert the 'ds' to integer
+        df['ds'] = pd.to_datetime(df['ds']).astype(int)
+
+        return df
     else:
         raise ValueError(
             f"Loading method for dataset '{dataset_name}' is not defined.")
@@ -164,6 +169,8 @@ def get_instance(
         early_stop = get_config_value(
             params.early_stop_patience_steps, config_idx)
         batch_size_val = get_config_value(params.batch_size, config_idx)
+        val_check_steps = get_config_value(params.val_check_steps, config_idx)
+
         model_instance = SimpleMoe(
             h=horizon,
             input_size=input_size_val,
@@ -174,6 +181,7 @@ def get_instance(
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
             enable_checkpointing=True,
+            val_check_steps=val_check_steps,
             # scaler_type='standard',
             # callbacks= [ SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
             # scaler_type='minmax',     
@@ -187,6 +195,8 @@ def get_instance(
         early_stop = get_config_value(
         params.early_stop_patience_steps, config_idx)
         batch_size_val = get_config_value(params.batch_size, config_idx)
+        val_check_steps = get_config_value(params.val_check_steps, config_idx)
+
         model_instance = NBEATS(
             h=horizon,
             input_size=input_size_val,
@@ -194,8 +204,9 @@ def get_instance(
             valid_loss=eval(loss_str)(),
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
-            callbacks=[checkpoint_callback],
+            # callbacks=[checkpoint_callback],
             enable_checkpointing=True,
+            val_check_steps=val_check_steps,
             # scaler_type='standard',
         )
     elif model_name.lower() == "nhits":
@@ -204,7 +215,9 @@ def get_instance(
         valid_loss_str = get_config_value(params.valid_loss, config_idx)
         early_stop = get_config_value(
             params.early_stop_patience_steps, config_idx)
-        batch_size_val = get_config_value(params.batch_size, config_idx)    
+        batch_size_val = get_config_value(params.batch_size, config_idx)
+        val_check_steps = get_config_value(params.val_check_steps, config_idx)
+
         model_instance = NHITS(
             h=horizon,
             input_size=input_size_val,
@@ -214,6 +227,7 @@ def get_instance(
             batch_size=batch_size_val,
             callbacks=[checkpoint_callback],
             enable_checkpointing=True,
+            val_check_steps=val_check_steps,
             # scaler_type='standard',
         )
     elif model_name.lower() == "timemoeadapted":
@@ -224,9 +238,10 @@ def get_instance(
         early_stop = get_config_value(
             params.early_stop_patience_steps, config_idx)
         batch_size_val = get_config_value(params.batch_size, config_idx)
+        val_check_steps = get_config_value(params.val_check_steps, config_idx)
         
         optimizer = torch.optim.AdamW
-        num_training_steps = 10000
+        num_training_steps = 100000
         
         model_instance = TimeMoeAdapted(
             h=horizon,
@@ -243,9 +258,10 @@ def get_instance(
             lr_scheduler=WarmupWithCosineLR,
             lr_scheduler_kwargs={
                 'num_training_steps': num_training_steps,
-                'num_warmup_steps': 1000, 
+                'num_warmup_steps': 10000, 
                 'min_lr': 1e-6
                 },
+            val_check_steps=val_check_steps,
             # callbacks= [ checkpoint_callback, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
         )
     else:
@@ -448,7 +464,7 @@ def run_exp(cfg: DictConfig):
                         Y_train_df,
                         Y_test_df,
                         horizon,
-                        cfg.forecast.default_forecast.freq,
+                        dataset_cfg.freq,
                         config_idx=i
                     )
                     print(
