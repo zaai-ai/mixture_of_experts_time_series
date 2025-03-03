@@ -129,7 +129,7 @@ class SimpleMoe(BaseWindows):
                  inference_windows_batch_size: int = 32,
                  start_padding_enabled: bool = False,
                  step_size: int = 1,
-                 scaler_type: str = 'identity',
+                 scaler_type: str = 'robust',
                  random_seed: int = 1,
                  drop_last_loader: bool = False,
                  optimizer = None,

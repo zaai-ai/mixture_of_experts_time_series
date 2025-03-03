@@ -2,10 +2,10 @@
 version_base: 1.1
 
 # List of active models to run (should match keys in the models section)
-active_models: ["simpleMoe"]
+active_models: ["timeMoeAdapted"]
 
 # List of active datasets to run (should match keys in the data section)
-active_datasets: ["m3_monthly"]
+active_datasets: ["m4_monthly"]
 
 models:
   simpleMoe:
@@ -30,11 +30,25 @@ models:
       valid_loss: "SMAPE"    # Single string value
       early_stop_patience_steps: 10  # A single number
       batch_size: 32
+  timeMoeAdapted:
+    params:
+      input_size: 24
+      dropout: 0.1
+      loss: "HuberLoss"         # Single string value (will be eval'd to a loss instance)
+      valid_loss: "HuberLoss"    # Single string value
+      early_stop_patience_steps: 10  # A single number
+      batch_size: 32
+    
 
 data:
   m3_monthly:
-    directory: "./data/m3"
+    directory: "/home/ricardo/mixture_of_experts_time_series/data/m3/"
     group: "Monthly"
+    # List of horizons to test (e.g. forecasting 12, 18, and 24 steps ahead)
+    horizons: [18]
+  m4_monthly:
+    directory: "/home/ricardo/mixture_of_experts_time_series/data/m4/"
+    group: "Hourly"
     # List of horizons to test (e.g. forecasting 12, 18, and 24 steps ahead)
     horizons: [18]
 
@@ -49,5 +63,5 @@ plot:
     xlabel: "Year"
     ylabel: "y"
     title: "All Forecasts"
-    legend_font_size: 15
+    legend_font_size: 5
     grid: true
