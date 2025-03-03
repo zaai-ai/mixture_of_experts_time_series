@@ -539,7 +539,7 @@ class TimeMoeAdapted(BaseWindows):
                  inference_windows_batch_size: int = 32,
                  start_padding_enabled: bool = True,
                  step_size: int = 1,
-                 scaler_type: str = 'robust', #minmax
+                 scaler_type: str = 'minmax', #minmax
                  random_seed: int = 1,
                  drop_last_loader: bool = False,
                  optimizer = None,
@@ -597,7 +597,23 @@ class TimeMoeAdapted(BaseWindows):
         # self._attn_implementation = config._attn_implementation
         self.norm = TimeMoeRMSNorm(self.hidden_size)
         
+        # self.output_layer = MLP(
+        #     in_features=self.hidden_size,
+        #     out_features=self.h,
+        #     hidden_size= 64,# self.decoder_hidden_size,
+        #     num_layers= 1, # self.decoder_layers,
+        #     activation="ReLU",
+        #     dropout=0.0,
+        # )
         self.output_layer = nn.Linear(self.hidden_size, self.h, bias=False)
+        # self.output_layer = nn.LSTM(
+        #     input_size=self.hidden_size,
+        #     hidden_size=self.h,
+        #     num_layers=2,
+        #     bias=True,
+        #     dropout=0.0,
+        #     batch_first=True,
+        # )
         
         self.attention_mask = None
         

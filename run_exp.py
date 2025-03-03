@@ -66,7 +66,7 @@ class WarmupWithCosineLR(LambdaLR):
     #     )
     #     return LambdaLR(optimizer, lr_lambda, last_epoch)
     
-    def __init__(self, optimizer,num_training_steps= 10000, num_warmup_steps = 1000 , min_lr = 0.0, last_epoch=-1, verbose=False):
+    def __init__(self, optimizer,num_training_steps= 100000, num_warmup_steps = 10000 , min_lr = 0.0, last_epoch=-1, verbose=False):
        
         lr_lambda = partial(
             self._get_cosine_schedule_with_warmup_and_min_lr_lambda,
