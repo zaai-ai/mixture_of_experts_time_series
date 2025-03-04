@@ -2,10 +2,10 @@
 version_base: 1.1
 
 # List of active models to run (should match keys in the models section)
-active_models: ["simpleMoe"]
+active_models: ["autoformer"]
 
 # List of active datasets to run (should match keys in the data section)
-active_datasets: ["m4_monthly"]
+active_datasets: ["m3_monthly"]
 
 models:
   simpleMoe:
@@ -40,7 +40,25 @@ models:
       loss: "HuberLoss"         # Single string value (will be eval'd to a loss instance)
       valid_loss: "HuberLoss"    # Single string value
       early_stop_patience_steps: 10  # A single number
-      val_check_steps: 1000
+      val_check_steps: 100
+      batch_size: 32
+  vanillatransformer:
+    params:
+      input_size: 24
+      dropout: 0.1
+      loss: "HuberLoss"         # Single string value (will be eval'd to a loss instance)
+      valid_loss: "HuberLoss"    # Single string value
+      early_stop_patience_steps: 10  # A single number
+      val_check_steps: 100
+      batch_size: 32
+  autoformer:
+    params:
+      input_size: 24
+      dropout: 0.1
+      loss: "HuberLoss"         
+      valid_loss: "HuberLoss"   
+      early_stop_patience_steps: 10
+      val_check_steps: 100
       batch_size: 32
     
 

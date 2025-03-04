@@ -18,6 +18,8 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 from torch.optim.lr_scheduler import LambdaLR, LRScheduler
 
 
+import traceback
+
 ### callback
 from models.callbacks.gate_distribution import GateDistributionCallback
 from models.callbacks.series_distribution import SeriesDistributionCallback
@@ -31,7 +33,8 @@ from models.SimpleMoe import SimpleMoe
 from models.TimeMoeAdapted import TimeMoeAdapted
 from neuralforecast.models import NHITS
 from neuralforecast.models import NBEATS
-import traceback
+from neuralforecast.models import VanillaTransformer
+from neuralforecast.models import Autoformer
 
 
 
@@ -241,7 +244,7 @@ def get_instance(
         val_check_steps = get_config_value(params.val_check_steps, config_idx)
         
         optimizer = torch.optim.AdamW
-        num_training_steps = 100000
+        num_training_steps = 10000
         
         model_instance = TimeMoeAdapted(
             h=horizon,
@@ -258,7 +261,77 @@ def get_instance(
             lr_scheduler=WarmupWithCosineLR,
             lr_scheduler_kwargs={
                 'num_training_steps': num_training_steps,
-                'num_warmup_steps': 10000, 
+                'num_warmup_steps': 1000, 
+                'min_lr': 1e-6
+                },
+            val_check_steps=val_check_steps,
+            # callbacks= [ checkpoint_callback, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
+        )
+    elif model_name.lower() == "vanillatransformer":
+        input_size_val = get_config_value(params.input_size, config_idx)
+        dropout_val = get_config_value(params.dropout, config_idx)
+        loss_str = get_config_value(params.loss, config_idx)
+        valid_loss_str = get_config_value(params.valid_loss, config_idx)
+        early_stop = get_config_value(
+            params.early_stop_patience_steps, config_idx)
+        batch_size_val = get_config_value(params.batch_size, config_idx)
+        val_check_steps = get_config_value(params.val_check_steps, config_idx)
+        
+        optimizer = torch.optim.AdamW
+        num_training_steps = 10000
+        
+        model_instance = VanillaTransformer(
+            h=horizon,
+            input_size=input_size_val,
+            dropout=dropout_val,
+            loss=eval(loss_str)(),
+            valid_loss=eval(valid_loss_str)(),
+            early_stop_patience_steps=early_stop,
+            batch_size=batch_size_val,
+            enable_checkpointing=True,
+            max_steps=num_training_steps,
+            scaler_type='minmax',
+            optimizer=optimizer,
+            optimizer_kwargs={'lr': 1e-3, 'weight_decay': 0.1, 'betas': (0.9, 0.95)},
+            lr_scheduler=WarmupWithCosineLR,
+            lr_scheduler_kwargs={
+                'num_training_steps': num_training_steps,
+                'num_warmup_steps': 1000, 
+                'min_lr': 1e-6
+                },
+            val_check_steps=val_check_steps,
+            # callbacks= [ checkpoint_callback, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
+        )
+    elif model_name.lower() == "autoformer":
+        input_size_val = get_config_value(params.input_size, config_idx)
+        dropout_val = get_config_value(params.dropout, config_idx)
+        loss_str = get_config_value(params.loss, config_idx)
+        valid_loss_str = get_config_value(params.valid_loss, config_idx)
+        early_stop = get_config_value(
+            params.early_stop_patience_steps, config_idx)
+        batch_size_val = get_config_value(params.batch_size, config_idx)
+        val_check_steps = get_config_value(params.val_check_steps, config_idx)
+        
+        optimizer = torch.optim.AdamW
+        num_training_steps = 10000
+        
+        model_instance = Autoformer(
+            h=horizon,
+            input_size=input_size_val,
+            dropout=dropout_val,
+            loss=eval(loss_str)(),
+            valid_loss=eval(valid_loss_str)(),
+            early_stop_patience_steps=early_stop,
+            batch_size=batch_size_val,
+            enable_checkpointing=True,
+            max_steps=num_training_steps,
+            scaler_type='minmax',
+            optimizer=optimizer,
+            optimizer_kwargs={'lr' : 1e-3, 'weight_decay': 0.1, 'betas': (0.9, 0.95)},
+            lr_scheduler=WarmupWithCosineLR,
+            lr_scheduler_kwargs={
+                'num_training_steps': num_training_steps,
+                'num_warmup_steps': 1000, 
                 'min_lr': 1e-6
                 },
             val_check_steps=val_check_steps,
