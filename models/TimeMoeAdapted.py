@@ -539,7 +539,7 @@ class TimeMoeAdapted(BaseWindows):
                  inference_windows_batch_size: int = 32,
                  start_padding_enabled: bool = True,
                  step_size: int = 1,
-                 scaler_type: str = 'minmax', #minmax
+                 scaler_type: str = 'standard', #minmax
                  random_seed: int = 1,
                  drop_last_loader: bool = False,
                  optimizer = None,
