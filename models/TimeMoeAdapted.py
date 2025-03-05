@@ -69,14 +69,14 @@ class TimeMoeConfig():
     def __init__(
             self,
             input_size: int = 1,
-            hidden_size: int = 128, # 4096
+            hidden_size: int = 256, # 4096
             intermediate_size: int = 4000, # 22016
             horizon_lengths: List[int] = 1,
             num_hidden_layers: int = 1, # 8 in the paper
-            num_attention_heads: int = 2,
+            num_attention_heads: int = 8,
             num_key_value_heads: int = None,
             hidden_act: str = "silu",
-            num_experts_per_tok: int = 1,
+            num_experts_per_tok: int = 2,
             num_experts: int = 8,
             max_position_embeddings: int = 32768, # 32768
             initializer_range: float = 0.02,
@@ -547,7 +547,12 @@ class TimeMoeAdapted(BaseWindows):
                  lr_scheduler = None,
                  lr_scheduler_kwargs = None,
                  dataloader_kwargs = None,
-                 hidden_size=16,
+                 hidden_size=64,
+                 config=True,
+                 n_head=None,
+                 intermediate_size=None,
+                 num_experts_per_tok=None,
+                 num_experts=None,
                  experts=None,
                  gate=None,
                  pooling=None, 
@@ -587,6 +592,15 @@ class TimeMoeAdapted(BaseWindows):
         self.dropout = nn.Dropout(dropout)
         
         self.config = TimeMoeConfig(hidden_size=hidden_size)
+        if config:
+            self.config = TimeMoeConfig(
+                input_size=input_size,
+                hidden_size=hidden_size,
+                intermediate_size=intermediate_size,
+                num_attention_heads=n_head,
+                num_experts_per_tok=num_experts_per_tok,
+                num_experts=num_experts,
+            )
         
         self.embed_layer = TimeMoeInputEmbedding(input_size, hidden_size=self.hidden_size)
 

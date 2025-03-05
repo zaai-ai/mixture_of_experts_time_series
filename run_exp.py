@@ -258,12 +258,12 @@ def get_instance(
             max_steps=num_training_steps,
             optimizer=optimizer,
             optimizer_kwargs={'lr': 1e-3, 'weight_decay': 0.1, 'betas': (0.9, 0.95)},
-            # lr_scheduler=WarmupWithCosineLR,
-            # lr_scheduler_kwargs={
-            #     'num_training_steps': num_training_steps,
-            #     'num_warmup_steps': 1000, 
-            #     'min_lr': 1e-6
-            #     },
+            lr_scheduler=WarmupWithCosineLR,
+            lr_scheduler_kwargs={
+                'num_training_steps': num_training_steps,
+                'num_warmup_steps': 1000, 
+                'min_lr': 1e-6
+                },
             val_check_steps=val_check_steps,
             # callbacks= [ checkpoint_callback, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
         )
