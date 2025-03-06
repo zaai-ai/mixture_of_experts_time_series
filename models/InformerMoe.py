@@ -125,6 +125,11 @@ class SparseMoe(nn.Module):
             # Weight the expert's output by the corresponding routing weights.
             weighted_sum += expert_output * expert_routing.unsqueeze(-1)
             
+        # print a list of all the  experts called in the expert mask
+        # called_experts, counts = selected_experts.unique(return_counts=True)
+        # expert_call_map = dict(zip(called_experts.tolist(), counts.tolist()))
+        # print(f"Expert call map: {expert_call_map}")
+
         return weighted_sum
 
 
@@ -289,8 +294,8 @@ class InformerMoe(BaseWindows):
             norm_layer=torch.nn.LayerNorm(hidden_size),
             # projection=nn.Linear(hidden_size, self.c_out, bias=True),
             projection=SparseMoe(
-                experts=[nn.Linear(hidden_size, self.c_out, bias=True) for _ in range(8)],
-                gate=nn.Linear(hidden_size, 8, bias=True),
+                experts=[nn.Linear(hidden_size, self.c_out, bias=True) for _ in range(16)],
+                gate=nn.Linear(hidden_size, 16, bias=True),
                 out_features=self.c_out,
                 k=1,
             ),
