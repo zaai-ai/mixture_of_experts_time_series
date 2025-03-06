@@ -73,11 +73,11 @@ class TimeMoeConfig():
             intermediate_size: int = 4000, # 22016
             horizon_lengths: List[int] = 1,
             num_hidden_layers: int = 1, # 8 in the paper
-            num_attention_heads: int = 8,
+            num_attention_heads: int = 2,
             num_key_value_heads: int = None,
             hidden_act: str = "silu",
-            num_experts_per_tok: int = 2,
-            num_experts: int = 8,
+            num_experts_per_tok: int = 4,
+            num_experts: int = 16,
             max_position_embeddings: int = 32768, # 32768
             initializer_range: float = 0.02,
             rms_norm_eps: float = 1e-6,
@@ -547,8 +547,8 @@ class TimeMoeAdapted(BaseWindows):
                  lr_scheduler = None,
                  lr_scheduler_kwargs = None,
                  dataloader_kwargs = None,
-                 hidden_size=64,
-                 config=True,
+                 hidden_size=128,
+                 config=False,
                  n_head=None,
                  intermediate_size=None,
                  num_experts_per_tok=None,
