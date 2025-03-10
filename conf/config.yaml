@@ -2,7 +2,7 @@
 version_base: 1.1
 
 # List of active models to run (should match keys in the models section)
-active_models: ["informerMoe"]
+active_models: ["mlpMoe"]
 
 # List of active datasets to run (should match keys in the data section)
 active_datasets: ["m3_monthly"]
@@ -45,7 +45,7 @@ models:
   vanillatransformer:
     params:
       input_size: 24
-      dropout: 0.1
+      dropout: 0.1  
       loss: "HuberLoss"         # Single string value (will be eval'd to a loss instance)
       valid_loss: "HuberLoss"    # Single string value
       early_stop_patience_steps: 10  # A single number
@@ -58,7 +58,7 @@ models:
       loss: "HuberLoss"         
       valid_loss: "HuberLoss"   
       early_stop_patience_steps: 30
-      val_check_steps: 100
+      val_check_steps: 100  
       batch_size: 32
   informerMoe:
     params:
@@ -69,6 +69,22 @@ models:
         early_stop_patience_steps: 10
         val_check_steps: 100
         batch_size: 32
+  mlp:
+    params:
+      input_size: 24
+      loss: "HuberLoss"         # Single string value (will be eval'd to a loss instance)
+      valid_loss: "HuberLoss"    # Single string value
+      early_stop_patience_steps: 10  # A single number
+      val_check_steps: 100
+      batch_size: 32
+  mlpMoe:
+    params:
+      input_size: 24
+      loss: "HuberLoss"         # Single string value (will be eval'd to a loss instance)
+      valid_loss: "HuberLoss"    # Single string value
+      early_stop_patience_steps: 10  # A single number
+      val_check_steps: 100
+      batch_size: 32
     
 
 data:

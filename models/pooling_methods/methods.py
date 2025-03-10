@@ -18,7 +18,8 @@ class BasePooling(nn.Module):
         experts: List[nn.Module],
         gate: nn.Module,
         out_features: int,
-        device: Optional[torch.device] = None
+        device: Optional[torch.device] = None,
+        unpack: bool = True
     ) -> None:
         """
         Args:
@@ -33,6 +34,7 @@ class BasePooling(nn.Module):
         self.out_features: int = out_features
         self.device: torch.device = device if device is not None else torch.device("cpu")
         self.softmax: nn.Softmax = nn.Softmax(dim=1)
+        self.unpack: bool = unpack
         
     def forward(self, insample_y: torch.Tensor) -> torch.Tensor:
         """
@@ -57,7 +59,9 @@ class DensePooling(BasePooling):
     """
     def forward(self, windows_batch: dict) -> torch.Tensor:
 
-        insample_y = windows_batch['insample_y']
+        if self.unpack: insample_y = windows_batch['insample_y']
+        else: insample_y = windows_batch
+
         # Compute the gate and normalize it.
         gate_logits: torch.Tensor = self.gate(insample_y)
         gate_probs: torch.Tensor = self.softmax(gate_logits)
@@ -84,7 +88,8 @@ class SparsePooling(BasePooling):
         gate: nn.Module,
         out_features: int,
         k: int = 3,
-        device: Optional[torch.device] = None
+        device: Optional[torch.device] = None,
+        unpack: bool = True
     ) -> None:
         """
         Args:
@@ -94,12 +99,13 @@ class SparsePooling(BasePooling):
             k (int, optional): The number of top experts to select. Defaults to 1.
             device (Optional[torch.device], optional): Device to run on. Defaults to CPU.
         """
-        super(SparsePooling, self).__init__(experts, gate, out_features, device)
+        super(SparsePooling, self).__init__(experts, gate, out_features, device, unpack)
         self.k: int = k
 
     def forward(self, windows_batch: dict) -> torch.Tensor:
 
-        insample_y = windows_batch['insample_y']
+        if self.unpack: insample_y = windows_batch['insample_y']
+        else: insample_y = windows_batch
 
         # Compute the gate logits. Shape: [batch, num_experts]
         gate_logits: torch.Tensor = self.gate(insample_y)
@@ -153,7 +159,8 @@ class SoftPooling(BasePooling):
         gate: nn.Module,
         out_features: int,
         temperature: float = 1.0,
-        device: Optional[torch.device] = None
+        device: Optional[torch.device] = None,
+        unpack: bool = True
     ) -> None:
         """
         Args:
@@ -162,13 +169,15 @@ class SoftPooling(BasePooling):
             out_features (int): The number of output features.
             temperature (float, optional): Temperature parameter for softmax. Defaults to 1.0.
             device (Optional[torch.device], optional): Device to run on. Defaults to CPU.
+            unpack (bool, optional): Whether to unpack the input dictionary. Defaults to True.
         """
-        super(SoftPooling, self).__init__(experts, gate, out_features, device)
+        super().__init__(experts, gate, out_features, device, unpack)
         self.temperature: float = temperature
 
     def forward(self, windows_batch: dict) -> torch.Tensor:
 
-        insample_y = windows_batch['insample_y']
+        if self.unpack: insample_y = windows_batch['insample_y']
+        else: insample_y = windows_batch
 
         # Compute the gate logits and apply temperature-scaled softmax.
         gate_logits: torch.Tensor = self.gate(insample_y)

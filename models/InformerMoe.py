@@ -297,7 +297,7 @@ class InformerMoe(BaseWindows):
                 experts=[nn.Linear(hidden_size, self.c_out, bias=True) for _ in range(16)],
                 gate=nn.Linear(hidden_size, 16, bias=True),
                 out_features=self.c_out,
-                k=1,
+                k=3,
             ),
         )
 

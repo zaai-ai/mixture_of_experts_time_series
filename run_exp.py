@@ -32,10 +32,12 @@ from models.callbacks.series_similarity import SeriesSimilarityCallback
 from models.SimpleMoe import SimpleMoe
 from models.TimeMoeAdapted import TimeMoeAdapted
 from models.InformerMoe import InformerMoe
+from models.MlpMoe import MLPMoe
 from neuralforecast.models import NHITS
 from neuralforecast.models import NBEATS
 from neuralforecast.models import VanillaTransformer
 from neuralforecast.models import Autoformer
+from neuralforecast.models import MLP
 
 
 
@@ -376,6 +378,77 @@ def get_instance(
             val_check_steps=val_check_steps,
             # callbacks= [ checkpoint_callback, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
         )
+    elif model_name.lower() == "mlp":
+
+        input_size_val = get_config_value(params.input_size, config_idx)
+        loss_str = get_config_value(params.loss, config_idx)
+        valid_loss_str = get_config_value(params.valid_loss, config_idx)
+        early_stop = get_config_value(
+            params.early_stop_patience_steps, config_idx)
+        batch_size_val = get_config_value(params.batch_size, config_idx)
+        val_check_steps = get_config_value(params.val_check_steps, config_idx)
+        
+        optimizer = torch.optim.AdamW
+        num_training_steps = 10000
+        
+        model_instance = MLPMoe(
+            h=horizon,
+            input_size=input_size_val,
+            loss=eval(loss_str)(),
+            valid_loss=eval(valid_loss_str)(),
+            early_stop_patience_steps=early_stop,
+            batch_size=batch_size_val,
+            enable_checkpointing=True,
+            max_steps=num_training_steps,
+            hidden_size=4096,
+            scaler_type='minmax',
+            optimizer=optimizer,
+            optimizer_kwargs={'lr': 1e-3, 'weight_decay': 0.1, 'betas': (0.9, 0.95)},
+            # lr_scheduler=WarmupWithCosineLR,
+            # lr_scheduler_kwargs={
+            #     'num_training_steps': num_training_steps,
+            #     'num_warmup_steps': 1000, 
+            #     'min_lr': 1e-6
+            #     },
+            val_check_steps=val_check_steps,
+            # callbacks= [ checkpoint_callback, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
+        )
+    elif model_name.lower() == "mlpmoe":
+
+        input_size_val = get_config_value(params.input_size, config_idx)
+        loss_str = get_config_value(params.loss, config_idx)
+        valid_loss_str = get_config_value(params.valid_loss, config_idx)
+        early_stop = get_config_value(
+            params.early_stop_patience_steps, config_idx)
+        batch_size_val = get_config_value(params.batch_size, config_idx)
+        val_check_steps = get_config_value(params.val_check_steps, config_idx)
+        
+        optimizer = torch.optim.AdamW
+        num_training_steps = 10000
+        
+        model_instance = MLPMoe(
+            h=horizon,
+            input_size=input_size_val,
+            loss=eval(loss_str)(),
+            valid_loss=eval(valid_loss_str)(),
+            early_stop_patience_steps=early_stop,
+            batch_size=batch_size_val,
+            enable_checkpointing=True,
+            max_steps=num_training_steps,
+            hidden_size=4096,
+            scaler_type='minmax',
+            optimizer=optimizer,
+            optimizer_kwargs={'lr': 1e-3, 'weight_decay': 0.1, 'betas': (0.9, 0.95)},
+            # lr_scheduler=WarmupWithCosineLR,
+            # lr_scheduler_kwargs={
+            #     'num_training_steps': num_training_steps,
+            #     'num_warmup_steps': 1000, 
+            #     'min_lr': 1e-6
+            #     },
+            val_check_steps=val_check_steps,
+            # callbacks= [ checkpoint_callback, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
+        )
+
     else:
         raise NotImplementedError(f"Model '{model_name}' is not implemented.")  
     return model_instance, checkpoint_callback
