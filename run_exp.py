@@ -203,9 +203,12 @@ def get_instance(
         batch_size_val = get_config_value(params.batch_size, config_idx)
         val_check_steps = get_config_value(params.val_check_steps, config_idx)
 
+        num_training_steps = 10000
+
         model_instance = NBEATS(
             h=horizon,
             input_size=input_size_val,
+            max_steps=num_training_steps,
             loss=eval(loss_str)(),
             valid_loss=eval(loss_str)(),
             early_stop_patience_steps=early_stop,
@@ -434,19 +437,19 @@ def get_instance(
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
             enable_checkpointing=True,
-            max_steps=num_training_steps,
+            max_steps=2900,
             hidden_size=4096,
             scaler_type='minmax',
             optimizer=optimizer,
             optimizer_kwargs={'lr': 1e-3, 'weight_decay': 0.1, 'betas': (0.9, 0.95)},
-            # lr_scheduler=WarmupWithCosineLR,
-            # lr_scheduler_kwargs={
-            #     'num_training_steps': num_training_steps,
-            #     'num_warmup_steps': 1000, 
-            #     'min_lr': 1e-6
-            #     },
+            lr_scheduler=WarmupWithCosineLR,
+            lr_scheduler_kwargs={
+                'num_training_steps': num_training_steps,
+                'num_warmup_steps': 1000, 
+                'min_lr': 1e-6
+                },
             val_check_steps=val_check_steps,
-            # callbacks= [ checkpoint_callback, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
+            # callbacks= [ checkpoint_callback]#, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
         )
 
     else:

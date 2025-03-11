@@ -19,7 +19,8 @@ class BasePooling(nn.Module):
         gate: nn.Module,
         out_features: int,
         device: Optional[torch.device] = None,
-        unpack: bool = True
+        unpack: bool = True,
+        return_soft_gates: bool = False
     ) -> None:
         """
         Args:
@@ -35,6 +36,7 @@ class BasePooling(nn.Module):
         self.device: torch.device = device if device is not None else torch.device("cpu")
         self.softmax: nn.Softmax = nn.Softmax(dim=1)
         self.unpack: bool = unpack
+        self.return_soft_gates: bool = return_soft_gates
         
     def forward(self, insample_y: torch.Tensor) -> torch.Tensor:
         """
@@ -73,6 +75,10 @@ class DensePooling(BasePooling):
         # Sum over all experts.
         for i, expert in enumerate(self.experts):
             weighted_sum += gate_probs[:, i].unsqueeze(1) * expert(windows_batch)
+
+        if self.return_soft_gates:
+            return weighted_sum, gate_probs
+
         return weighted_sum
 
 ###############################################################################
@@ -89,7 +95,8 @@ class SparsePooling(BasePooling):
         out_features: int,
         k: int = 3,
         device: Optional[torch.device] = None,
-        unpack: bool = True
+        unpack: bool = True,
+        return_soft_gates: bool = False
     ) -> None:
         """
         Args:
@@ -99,7 +106,7 @@ class SparsePooling(BasePooling):
             k (int, optional): The number of top experts to select. Defaults to 1.
             device (Optional[torch.device], optional): Device to run on. Defaults to CPU.
         """
-        super(SparsePooling, self).__init__(experts, gate, out_features, device, unpack)
+        super(SparsePooling, self).__init__(experts, gate, out_features, device, unpack, return_soft_gates)
         self.k: int = k
 
     def forward(self, windows_batch: dict) -> torch.Tensor:
@@ -142,6 +149,9 @@ class SparsePooling(BasePooling):
             # Add the weighted expert output.
             weighted_sum += expert_output * expert_weight.unsqueeze(1)
 
+        if self.return_soft_gates:
+            return weighted_sum, gate_logits
+
         return weighted_sum
 
 ###############################################################################
@@ -160,7 +170,8 @@ class SoftPooling(BasePooling):
         out_features: int,
         temperature: float = 1.0,
         device: Optional[torch.device] = None,
-        unpack: bool = True
+        unpack: bool = True,
+        return_soft_gates: bool = False
     ) -> None:
         """
         Args:
@@ -189,4 +200,8 @@ class SoftPooling(BasePooling):
         # Sum over all experts.
         for i, expert in enumerate(self.experts):
             weighted_sum += soft_gate[:, i].unsqueeze(1) * expert(windows_batch)
+
+        if self.return_soft_gates:
+            return weighted_sum, soft_gate
+
         return weighted_sum
