@@ -33,6 +33,7 @@ from models.SimpleMoe import SimpleMoe
 from models.TimeMoeAdapted import TimeMoeAdapted
 from models.InformerMoe import InformerMoe
 from models.MlpMoe import MLPMoe
+from models.NBeatsMoe import NBeatsMoe
 from neuralforecast.models import NHITS
 from neuralforecast.models import NBEATS
 from neuralforecast.models import VanillaTransformer
@@ -394,7 +395,7 @@ def get_instance(
         optimizer = torch.optim.AdamW
         num_training_steps = 10000
         
-        model_instance = MLPMoe(
+        model_instance = MLP(
             h=horizon,
             input_size=input_size_val,
             loss=eval(loss_str)(),
@@ -451,7 +452,30 @@ def get_instance(
             val_check_steps=val_check_steps,
             # callbacks= [ checkpoint_callback]#, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
         )
+    elif model_name.lower() == "nbeatsmoe":
+        input_size_val = get_config_value(params.input_size, config_idx)
+        loss_str = get_config_value(params.loss, config_idx)
+        valid_loss_str = get_config_value(params.valid_loss, config_idx)
+        early_stop = get_config_value(
+        params.early_stop_patience_steps, config_idx)
+        batch_size_val = get_config_value(params.batch_size, config_idx)
+        val_check_steps = get_config_value(params.val_check_steps, config_idx)
 
+        num_training_steps = 10000
+
+        model_instance = NBeatsMoe(
+            h=horizon,
+            input_size=input_size_val,
+            max_steps=num_training_steps,
+            loss=eval(loss_str)(),
+            valid_loss=eval(loss_str)(),
+            early_stop_patience_steps=early_stop,
+            batch_size=batch_size_val,
+            # callbacks=[checkpoint_callback],
+            enable_checkpointing=True,
+            val_check_steps=val_check_steps,
+            # scaler_type='standard',
+        )
     else:
         raise NotImplementedError(f"Model '{model_name}' is not implemented.")  
     return model_instance, checkpoint_callback

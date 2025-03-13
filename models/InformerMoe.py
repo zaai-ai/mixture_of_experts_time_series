@@ -118,7 +118,7 @@ class SparseMoe(nn.Module):
             # Get the mask for expert i: shape (batch, time, k)
             mask = expert_mask[..., i].float()
             # Combine mask with routing weights and sum over the k dimension.
-            expert_routing = (routing_weights * mask).sum(dim=-1)  # shape: (batch, time)
+            expert_routing = (routing_weights * mask).sum(dim=-1)  # shape: (batch, time) # TODO: n estará aqui um erro? ... deveria fazer o softmax outra vez  e pk e que esta a sumar ? 
             
             # Compute expert's output: assume output shape (batch, time, out_features)
             expert_output = expert.to(x.device)(x)
