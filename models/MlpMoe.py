@@ -109,7 +109,10 @@ class MLPMoe(BaseWindows):
         # )
         self.out = SparsePooling(
             experts=[nn.Linear(hidden_size, h * self.loss.outputsize_multiplier, bias=True) for _ in range(8)],
-            gate=nn.Linear(in_features=hidden_size, out_features=8),
+            gate=nn.Sequential(
+                # nn.LayerNorm(hidden_size),
+                nn.Linear(in_features=hidden_size, out_features=8)
+                ),
             out_features=h * self.loss.outputsize_multiplier,
             k=1,
             unpack=False,
