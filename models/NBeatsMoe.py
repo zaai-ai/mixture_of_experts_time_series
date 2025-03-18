@@ -343,7 +343,7 @@ class NBeatsMoe(BaseWindows):
         )
 
         self.nr_experts = nr_experts
-        self.top_k = top_k
+        self.top_k = top_k if top_k <= self.nr_experts else self.nr_experts
 
         # Architecture
         blocks = self.create_stack(

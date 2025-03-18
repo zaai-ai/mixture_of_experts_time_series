@@ -25,6 +25,8 @@ class AutoNBEATSMoE(BaseAuto):
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "random_seed": tune.randint(1, 20),
+        "nr_experts": tune.choice([pow(2,x) for x in range(1, 5)]),
+        "top_k": tune.choice([pow(2,x) for x in range(1, 5)]),
     }
 
     def __init__(
