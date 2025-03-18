@@ -1,27 +1,25 @@
+
 from os import cpu_count
 import torch
 
-from neuralforecast.auto import AutoNBEATS
 from ray import tune
 
-from models.NBeatsMoe import NBeatsMoe
+from models.InformerMoe import InformerMoe
 
 from ray.tune.search.basic_variant import BasicVariantGenerator
 from neuralforecast.losses.pytorch import MAE
 from neuralforecast.auto import BaseAuto
 
 
-
-class AutoNBEATSMoE(BaseAuto):
+class AutoInformerMoe(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
-        "h": None,
-        "stack_types": tune.choice([["identity", "trend", "seasonality"], ["identity", "trend"]]),
-        "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(9)]),
+        "hidden_size": tune.choice([64, 128, 256]),
+        "n_head": tune.choice([4, 8]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "scaler_type": tune.choice([None, "minmax", "robust", "standard"]),
-        "max_steps": tune.choice([500, 1000, 5000]),
+        "scaler_type": tune.choice([None, "robust", "standard"]),
+        "max_steps": tune.choice([500, 1000, 2000]),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "random_seed": tune.randint(1, 20),
@@ -51,8 +49,8 @@ class AutoNBEATSMoE(BaseAuto):
         if config is None:
             config = self.get_default_config(h=h, backend=backend)
 
-        super(AutoNBEATSMoE, self).__init__(
-            cls_model=NBeatsMoe,
+        super(AutoInformerMoe, self).__init__(
+            cls_model=InformerMoe,
             h=h,
             loss=loss,
             valid_loss=valid_loss,

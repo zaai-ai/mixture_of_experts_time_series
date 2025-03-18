@@ -177,6 +177,8 @@ class InformerMoe(BaseWindows):
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
         dataloader_kwargs=None,
+        nr_experts: int = 16,
+        top_k: int = 3,
         **trainer_kwargs,
     ):
         super(InformerMoe, self).__init__(
@@ -223,6 +225,9 @@ class InformerMoe(BaseWindows):
         self.output_attention = False
         self.enc_in = 1
         self.dec_in = 1
+
+        self.nr_experts = nr_experts
+        self.top_k = top_k if top_k <= nr_experts else nr_experts
 
         # Embedding
         self.enc_embedding = DataEmbedding(
@@ -294,10 +299,10 @@ class InformerMoe(BaseWindows):
             norm_layer=torch.nn.LayerNorm(hidden_size),
             # projection=nn.Linear(hidden_size, self.c_out, bias=True),
             projection=SparseMoe(
-                experts=[nn.Linear(hidden_size, self.c_out, bias=True) for _ in range(16)],
-                gate=nn.Linear(hidden_size, 16, bias=True),
+                experts=[nn.Linear(hidden_size, self.c_out, bias=True) for _ in range(nr_experts)],
+                gate=nn.Linear(hidden_size, nr_experts, bias=True),
                 out_features=self.c_out,
-                k=3,
+                k=self.top_k,
             ),
         )
 

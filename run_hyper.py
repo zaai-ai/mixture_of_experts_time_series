@@ -12,7 +12,9 @@ from neuralforecast.auto import BaseAuto
 #### auto models
 
 from models.auto.AutoNbeatsMoe import AutoNBEATSMoE
+from models.auto.AutoInformerMoe import AutoInformerMoe
 from neuralforecast.auto import AutoNBEATS
+
 
 
 def load_dataset(dataset_name: str, dataset_cfg: DictConfig):
@@ -76,6 +78,17 @@ def get_model(name: str, horizon: int, study_name: str):
         return AutoNBEATS(
             h=horizon, 
             config=BaseAuto._ray_config_to_optuna(config),
+            num_samples=20,
+            backend="optuna",
+            optuna_kargs={
+            "study_name": study_name,
+            "storage": "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
+            "load_if_exists": True
+            }
+        )
+    elif name.lower() == "autoinformermoe":
+        return AutoInformerMoe(
+            h=horizon, 
             num_samples=20,
             backend="optuna",
             optuna_kargs={
