@@ -44,10 +44,10 @@ def train_test_split(df: pd.DataFrame, horizon: int):
     test_df = pd.concat(test_list).reset_index(drop=True)
     return train_df, test_df
 
-def get_model(name: str, study_name: str):
+def get_model(name: str, horizon: int, study_name: str):
     if name.lower() == "nbeatsmoe":
         return AutoNBEATSMoE(
-            h=18, 
+            h=horizon, 
             num_samples=20,
             backend="optuna",
             optuna_kargs={
@@ -70,7 +70,7 @@ def main(cfg: DictConfig):
     dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
 
     study_name = f"{cfg.model.name}_{cfg.dataset.name}_{cfg.horizon}"
-    model = get_model(cfg.model.name, study_name)
+    model = get_model(cfg.model.name, cfg.horizon, study_name)
 
     model.fit(dataset)
 
