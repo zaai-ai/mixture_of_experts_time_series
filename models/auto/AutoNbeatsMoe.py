@@ -24,7 +24,6 @@ class AutoNBEATSMoE(BaseAuto):
         "max_steps": tune.choice([500, 1000, 5000]),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
-        "loss": None,
         "random_seed": tune.randint(1, 20),
     }
 
@@ -43,6 +42,7 @@ class AutoNBEATSMoE(BaseAuto):
         alias=None,
         backend="ray",
         callbacks=None,
+        optuna_kargs=None,
     ):
 
         # Define search space, input/output sizes
@@ -64,6 +64,7 @@ class AutoNBEATSMoE(BaseAuto):
             alias=alias,
             backend=backend,
             callbacks=callbacks,
+            optuna_kargs=optuna_kargs,
         )
 
     @classmethod

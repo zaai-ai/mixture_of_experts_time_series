@@ -99,14 +99,12 @@ data:
   m3_monthly:
     directory: "C:\\Users\\ricar\\mixture_of_experts_time_series\\data\\m3\\"
     group: "Monthly"
-    # List of horizons to test (e.g. forecasting 12, 18, and 24 steps ahead)
     freq: "M"
     horizons: [12, 18, 24]
   m4_monthly:
     directory: "C:\\Users\\ricar\\mixture_of_experts_time_series\\data\\m4\\"
     group: "Monthly"
     freq: 1
-    # List of horizons to test (e.g. forecasting 12, 18, and 24 steps ahead)
     horizons: [18]
 
 
