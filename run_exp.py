@@ -4,6 +4,9 @@ from datasetsforecast.m4 import M4
 import hydra
 from omegaconf import DictConfig
 
+from typing import Any
+
+from neuralforecast.common._base_windows import BaseModel
 from neuralforecast.tsdataset import TimeSeriesDataset
 
 import optuna
@@ -11,6 +14,24 @@ import optuna
 from optuna.visualization import plot_optimization_history
 
 from utils import load_dataset, train_test_split
+
+from models.NBeatsMoe import NBeatsMoe
+from models.InformerMoe import InformerMoe
+from neuralforecast.models import VanillaTransformer
+from neuralforecast.models import NBEATS
+
+def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseModel:
+    if name.lower() == "nbeatsmoe":
+        return NBeatsMoe(h=horizon, **best_params)
+    elif name.lower() == "nbeats":
+        return NBEATS(h=horizon, **best_params)
+    elif name.lower() == "informermoe":
+        return InformerMoe(h=horizon, **best_params)
+    elif name.lower() == "vanillatransformer":
+        return VanillaTransformer(h=horizon, **best_params)
+    else:
+        raise ValueError(
+            f"Model '{name}' is not defined.")
 
 @hydra.main(config_path="conf", config_name="hyper.yaml")
 def main(cfg: DictConfig):
@@ -29,6 +50,10 @@ def main(cfg: DictConfig):
 
     print(study.best_params)
 
+    for _ in range(10):
+        model = get_instance(cfg.model.name, study.best_params, cfg.horizon)
+        # model.fit(dataset)
+        
 
 
 if __name__ == "__main__":
