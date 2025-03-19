@@ -64,9 +64,10 @@ def main(cfg: DictConfig):
         mae_e = mae(Y_test_df['y'].values, Y_pred_df)
         mse_e = mse(Y_test_df['y'].values, Y_pred_df)
 
-        results["smape"].append(smape_e)
-        results["mae"].append(mae_e)
-        results["mse"].append(mse_e)
+        # TODO: FIX THIS
+        # results["smape"].append(smape_e)
+        # results["mae"].append(mae_e)
+        # results["mse"].append(mse_e)
 
         print(f"results: {results}")
 
