@@ -1,8 +1,8 @@
 import pandas as pd
-from datasetsforecast.m3 import M3  
-from datasetsforecast.m4 import M4  
 import hydra
 from omegaconf import DictConfig
+import random
+from copy import deepcopy
 
 from typing import Any
 
@@ -10,8 +10,7 @@ from neuralforecast.common._base_windows import BaseModel
 from neuralforecast.tsdataset import TimeSeriesDataset
 
 import optuna
-
-from optuna.visualization import plot_optimization_history
+from neuralforecast.losses.numpy import smape, mae, mse
 
 from utils import load_dataset, train_test_split
 
@@ -40,6 +39,7 @@ def main(cfg: DictConfig):
     Y_train_df, Y_test_df = train_test_split(Y_ALL, cfg.horizon)
 
     dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
+    test_dataset, *_ = TimeSeriesDataset.from_df(Y_test_df)
 
     study_name = f"{cfg.model.name}_{cfg.dataset.name}_{cfg.horizon}"
     
@@ -48,11 +48,39 @@ def main(cfg: DictConfig):
         storage="sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
     )
 
-    print(study.best_params)
+    results = {"smape": [], "mae": [], "mse": []}
 
     for _ in range(10):
-        model = get_instance(cfg.model.name, study.best_params, cfg.horizon)
-        # model.fit(dataset)
+        random_seed = random.randint(1, 1000)
+        best_params = deepcopy(study.best_params)
+        best_params["random_seed"] = random_seed
+
+        model = get_instance(cfg.model.name, best_params, cfg.horizon)
+        model.fit(dataset)
+
+        # Evaluate on the test dataset
+        Y_pred_df = model.predict(test_dataset)
+        smape_e = smape(Y_test_df['y'].values, Y_pred_df)
+        mae_e = mae(Y_test_df['y'].values, Y_pred_df)
+        mse_e = mse(Y_test_df['y'].values, Y_pred_df)
+
+        results["smape"].append(smape_e)
+        results["mae"].append(mae_e)
+        results["mse"].append(mse_e)
+
+        print(f"results: {results}")
+
+    # Convert results to a DataFrame
+    results_df = pd.DataFrame(results)
+
+    # Calculate standard deviation and median for each metric
+    std_dev = results_df.std()
+    median = results_df.median()
+
+    print("Standard Deviation:")
+    print(std_dev)
+    print("\nMedian:")
+    print(median)
         
 
 
