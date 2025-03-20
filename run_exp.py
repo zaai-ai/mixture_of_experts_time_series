@@ -24,7 +24,7 @@ def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseMo
         return NBeatsMoe(h=horizon, **best_params)
     elif name.lower() == "nbeats":
         return NBEATS(h=horizon, **best_params)
-    elif name.lower() == "informermoe":
+    elif name.lower() == "autoinformermoe":
         return InformerMoe(h=horizon, **best_params)
     elif name.lower() == "vanillatransformer":
         return VanillaTransformer(h=horizon, **best_params)
@@ -60,14 +60,21 @@ def main(cfg: DictConfig):
 
         # Evaluate on the test dataset
         Y_pred_df = model.predict(test_dataset)
-        smape_e = smape(Y_test_df['y'].values, Y_pred_df)
-        mae_e = mae(Y_test_df['y'].values, Y_pred_df)
-        mse_e = mse(Y_test_df['y'].values, Y_pred_df)
 
-        # TODO: FIX THIS
-        # results["smape"].append(smape_e)
-        # results["mae"].append(mae_e)
-        # results["mse"].append(mse_e)
+        y_true = Y_test_df['y'].values
+        y_hat = Y_pred_df
+
+        n_series = Y_test_df['unique_id'].nunique()
+        y_true = y_true.reshape(n_series, -1)
+        y_hat = y_hat.reshape(n_series, -1)
+
+        smape_e = smape(y_true, y_hat)
+        mae_e = mae(y_true, y_hat)
+        mse_e = mse(y_true, y_hat)
+
+        results["smape"].append(smape_e)
+        results["mae"].append(mae_e)
+        results["mse"].append(mse_e)
 
         print(f"results: {results}")
 
@@ -79,10 +86,9 @@ def main(cfg: DictConfig):
     median = results_df.median()
 
     print("Standard Deviation:")
-    print(std_dev)
+    print(std_dev.round(4))
     print("\nMedian:")
-    print(median)
-        
+    print(median.round(4))
 
 
 if __name__ == "__main__":
