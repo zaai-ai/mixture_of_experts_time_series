@@ -1,7 +1,7 @@
 version_base: 1.1
 
 model:
-  name: "nbeatsMoe"
+  name: "nbeats"
 horizon: 18
 
 dataset:

@@ -1,6 +1,7 @@
 import hydra
 from omegaconf import DictConfig
 from utils import load_dataset, train_test_split
+from typing import Dict
 
 from neuralforecast.tsdataset import TimeSeriesDataset
 
@@ -33,10 +34,11 @@ def get_model(name: str, horizon: int, study_name: str):
             "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(9)]),
             "learning_rate": tune.loguniform(1e-4, 1e-1),
             "scaler_type": tune.choice([None, "minmax", "robust", "standard"]),
-            "max_steps": tune.choice([500, 1000, 5000]),
+            "max_steps": tune.choice([1000, 2500, 5000]),
             "batch_size": tune.choice([32, 64, 128, 256]),
             "windows_batch_size": tune.choice([128, 256, 512, 1024]),
             "random_seed": tune.randint(1, 20),
+            # "early_stopping_patience": tune.choice([5, 10, 20]),
         }
 
         return AutoNBEATS(
@@ -77,18 +79,22 @@ def get_model(name: str, horizon: int, study_name: str):
             f"Model '{name}' is not defined.")
 
 
-@hydra.main(config_path="conf", config_name="hyper.yaml")
-def main(cfg: DictConfig):
-    Y_ALL = load_dataset(cfg.dataset.name, cfg.dataset)
+def run_pipeline(dataset_info: Dict[str, str], model_info: Dict[str, str], horizon: int):
+    Y_ALL = load_dataset(dataset_info["name"], dataset_info)
 
-    Y_train_df, Y_test_df = train_test_split(Y_ALL, cfg.horizon)
+    Y_train_df, Y_test_df = train_test_split(Y_ALL, horizon)
 
     dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
 
-    study_name = f"{cfg.model.name}_{cfg.dataset.name}_{cfg.horizon}"
-    model = get_model(cfg.model.name, cfg.horizon, study_name)
+    study_name = f"{model_info['name']}_{dataset_info['name']}_{horizon}"
+    model = get_model(model_info["name"], horizon, study_name)
 
     model.fit(dataset)
+
+@hydra.main(config_path="conf", config_name="hyper.yaml")
+def main(cfg: DictConfig):
+
+    run_pipeline(cfg.dataset, cfg.model, cfg.horizon)
 
 
 
