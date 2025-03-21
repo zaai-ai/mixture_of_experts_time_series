@@ -17,16 +17,17 @@ class AutoNBEATSMoE(BaseAuto):
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
         "h": None,
-        "stack_types": tune.choice([["identity", "trend", "seasonality"], ["identity", "trend"]]),
+        # "stack_types": tune.choice([["identity", "trend", "seasonality"], ["identity", "trend"]]),
         "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(9)]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "scaler_type": tune.choice([None, "identity", "minmax", "robust", "standard"]),
-        "max_steps": tune.choice([2500, 1000, 5000]),
+        "scaler_type": tune.choice(["identity", "minmax", "robust", "standard"]),
+        "max_steps": tune.choice([1000, 2500, 5000]),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "random_seed": tune.randint(1, 20),
         "nr_experts": tune.choice([pow(2,x) for x in range(1, 5)]),
         "top_k": tune.choice([x + 1 for x in range(0, 16)]),
+        "early_stop_patience_steps": tune.choice([5, 10, 20]),
     }
 
     def __init__(
@@ -71,6 +72,14 @@ class AutoNBEATSMoE(BaseAuto):
 
     @classmethod
     def get_default_config(cls, h, backend, n_series=None):
+
+        # def config_with_correct_top_k(trial):
+        #     conf = config(trial)
+        #     nr_experts = trial.suggest_categorical("nr_experts", [2**x for x in range(1, 5)])
+        #     conf["nr_experts"] = nr_experts
+        #     conf["top_k"] = trial.suggest_int("top_k", 1, nr_experts)
+        #     return conf
+
         config = cls.default_config.copy()
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
@@ -79,5 +88,6 @@ class AutoNBEATSMoE(BaseAuto):
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
+
 
         return config

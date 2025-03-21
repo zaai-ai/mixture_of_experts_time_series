@@ -19,7 +19,7 @@ def get_model(name: str, horizon: int, study_name: str):
     if name.lower() == "nbeatsmoe":
         return AutoNBEATSMoE(
             h=horizon, 
-            num_samples=20,
+            num_samples=100,
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,
@@ -30,21 +30,21 @@ def get_model(name: str, horizon: int, study_name: str):
     elif name.lower() == "nbeats":
         config = {
             "input_size": tune.choice([horizon * x for x in [1, 2, 3, 4, 5]]),
-            "stack_types": tune.choice([["identity", "trend", "seasonality"], ["identity", "trend"]]),
+            # "stack_types": tune.choice([["identity", "trend", "seasonality"], ["identity", "trend"]]),
             "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(9)]),
             "learning_rate": tune.loguniform(1e-4, 1e-1),
-            "scaler_type": tune.choice([None, "minmax", "robust", "standard"]),
+            "scaler_type": tune.choice(["identity", "minmax", "robust", "standard"]),
             "max_steps": tune.choice([1000, 2500, 5000]),
             "batch_size": tune.choice([32, 64, 128, 256]),
             "windows_batch_size": tune.choice([128, 256, 512, 1024]),
             "random_seed": tune.randint(1, 20),
-            # "early_stopping_patience": tune.choice([5, 10, 20]),
+            "early_stop_patience_steps": tune.choice([5, 10, 20]),
         }
 
         return AutoNBEATS(
             h=horizon, 
             config=BaseAuto._ray_config_to_optuna(config),
-            num_samples=20,
+            num_samples=100,
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,
@@ -86,26 +86,44 @@ def run_pipeline(dataset_info: Dict[str, str], model_info: Dict[str, str], horiz
 
     dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
 
-    study_name = f"{model_info['name']}_{dataset_info['name']}_{horizon}"
+    study_name = f"{model_info['name']}_{dataset_info['name']}_{dataset_info['group']}_{horizon}"
     model = get_model(model_info["name"], horizon, study_name)
 
     model.fit(dataset)
 
+
+def _get_all_groups_and_freq_of_dataset(dataset_info: Dict[str, str]):
+    if dataset_info["name"] == "m3":
+        return [
+            {"name": dataset_info["name"], "directory": dataset_info["directory"], "group": "Monthly", "freq": "M"},
+            {"name": dataset_info["name"], "directory": dataset_info["directory"], "group": "Quarterly", "freq": "Q"},
+            {"name": dataset_info["name"], "directory": dataset_info["directory"], "group": "Yearly", "freq": "Y"},
+            {"name": dataset_info["name"], "directory": dataset_info["directory"], "group": "Other", "freq": "O"},
+        ]
+    else:
+        raise ValueError(f"Dataset '{dataset_info['name']}' is not defined.")
+
 @hydra.main(config_path="conf", config_name="hyper.yaml")
 def main(cfg: DictConfig):
+    
+    dataset_info = cfg.dataset
+    model_info = cfg.model
+    horizon = cfg.horizon
 
-    run_pipeline(cfg.dataset, cfg.model, cfg.horizon)
+    models_names = model_info["name"] if isinstance(model_info["name"], list) else [model_info["name"]]
+    horizons = horizon if isinstance(horizon, list) else [horizon]
 
-
+    if cfg.get("all", True):
+        ## get all the possible groups and frequencies of the dataset
+        groups_and_freq = _get_all_groups_and_freq_of_dataset(dataset_info)
+        for group_and_freq in groups_and_freq:
+            for model_name in models_names:
+                for h in horizons:
+                    run_pipeline(group_and_freq, {"name": model_name}, h)
+    else:
+        for model_name in models_names:
+            for h in horizons:
+                run_pipeline(dataset_info, {"name": model_name}, h)
 
 if __name__ == "__main__":
     main()
-
-
-
-## TODO:
-## 1. fazer o yaml
-## 3. verificar se está a guardar os resultados dos hyperparametros no sql
-## 2. chamar o modelo associado no yaml com dataset associado
-## 4. fazer o script de teste
-## 5. guardar os resultados num ficheiro csv

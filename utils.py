@@ -79,13 +79,13 @@ def load_dataset(dataset_name: str, dataset_cfg: DictConfig):
     if dataset_name == "m3":
         print("Loading m3_monthly dataset...")
         return M3.load(
-            directory=dataset_cfg.directory,
-            group=dataset_cfg.group)[0]
+            directory=dataset_cfg["directory"],
+            group=dataset_cfg["group"])[0]
     elif dataset_name == "m4":
         print("Loading m4_monthly dataset...")
         df = M4.load(
-            directory=dataset_cfg.directory,
-            group=dataset_cfg.group)[0]
+            directory=dataset_cfg["directory"],
+            group=dataset_cfg["group"])[0]
         
         # Convert the 'ds' to integer
         df['ds'] = pd.to_datetime(df['ds']).astype(int)
