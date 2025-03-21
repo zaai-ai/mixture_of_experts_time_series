@@ -11,6 +11,7 @@ from neuralforecast.tsdataset import TimeSeriesDataset
 
 import optuna
 from neuralforecast.losses.numpy import smape, mae, mse
+from neuralforecast.losses.pytorch import HuberLoss
 
 from utils import load_dataset, train_test_split
 

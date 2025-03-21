@@ -154,8 +154,6 @@ class NBEATSBlock(nn.Module):
         basis: nn.Module,
         dropout_prob: float,
         activation: str,
-        nr_experts: int = 4,
-        top_k: int = 1,
     ):
         """ """
         super().__init__()
@@ -165,56 +163,31 @@ class NBEATSBlock(nn.Module):
         assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
         activ = getattr(nn, activation)()
 
-        self.nr_experts = nr_experts
-        self.k = top_k
-        self.experts = nn.ModuleList()
+        hidden_layers = [
+            nn.Linear(in_features=input_size, out_features=mlp_units[0][0])
+        ]
+        for layer in mlp_units:
+            hidden_layers.append(nn.Linear(in_features=layer[0], out_features=layer[1]))
+            hidden_layers.append(activ)
 
-        self.gate = nn.Sequential(
-            nn.LayerNorm(input_size),
-            nn.Linear(in_features=input_size, out_features=self.nr_experts),
-        )
+            if self.dropout_prob > 0:
+                raise NotImplementedError("dropout")
+                # hidden_layers.append(nn.Dropout(p=self.dropout_prob))
 
-        self.softmax = nn.Softmax(dim=1)
-
-        for i in range(self.nr_experts):
-
-            hidden_layers = [
-                nn.Linear(in_features=input_size, out_features=mlp_units[0][0])
-            ]
-            for layer in mlp_units:
-                hidden_layers.append(nn.Linear(in_features=layer[0], out_features=layer[1]))
-                hidden_layers.append(activ)
-
-                if self.dropout_prob > 0:
-                    raise NotImplementedError("dropout")
-                    # hidden_layers.append(nn.Dropout(p=self.dropout_prob))
-
-            output_layer = [nn.Linear(in_features=mlp_units[-1][1], out_features=n_theta)]
-            layers = hidden_layers + output_layer
-            self.layers = nn.Sequential(*layers)
-
-            self.experts.append(self.layers)
-
-        self.pooling = SparsePooling(
-            experts=self.experts, gate=self.gate, out_features=n_theta, k=self.k, 
-            unpack=False, return_soft_gates=True
-        )
-        
-        self.n_theta = n_theta
+        output_layer = [nn.Linear(in_features=mlp_units[-1][1], out_features=n_theta)]
+        layers = hidden_layers + output_layer
+        self.layers = nn.Sequential(*layers)
         self.basis = basis
 
     def forward(self, insample_y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        theta, gate_logits = self.pooling(insample_y)
-        
-        # gate_probs = self.softmax(gate_logits)
-        # top_k_gate_probs, top_k_indices = torch.topk(gate_probs, self.k, dim=1)
-        # print(top_k_indices.unique(return_counts=True))
-
+        # Compute local projection weights and projection
+        theta = self.layers(insample_y)
         backcast, forecast = self.basis(theta)
         return backcast, forecast
+    
 
 # %% ../../nbs/models.nbeats.ipynb 9
-class NBeatsMoe(BaseWindows):
+class NBeatsStackMoe(BaseWindows):
     """NBEATS
 
     The Neural Basis Expansion Analysis for Time Series (NBEATS), is a simple and yet
@@ -297,8 +270,6 @@ class NBeatsMoe(BaseWindows):
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
-        nr_experts: int = 4,
-        top_k: int = 1,
         drop_last_loader: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
@@ -315,7 +286,7 @@ class NBeatsMoe(BaseWindows):
             )
 
         # Inherit BaseWindows class
-        super(NBeatsMoe, self).__init__(
+        super(NBeatsStackMoe, self).__init__(
             h=h,
             input_size=input_size,
             loss=loss,
@@ -342,12 +313,6 @@ class NBeatsMoe(BaseWindows):
             **trainer_kwargs,
         )
 
-        if top_k > nr_experts:
-            raise Exception(f"Check top_k={top_k} <= nr_experts={nr_experts}")
-
-        self.nr_experts = nr_experts
-        self.top_k = top_k 
-
         # Architecture
         blocks = self.create_stack(
             h=h,
@@ -362,6 +327,11 @@ class NBeatsMoe(BaseWindows):
             n_harmonics=n_harmonics,
         )
         self.blocks = torch.nn.ModuleList(blocks)
+
+        self.gate = nn.Sequential(
+            nn.LayerNorm(input_size),
+            nn.Linear(in_features=input_size, out_features=len(stack_types)),
+        )
 
     def create_stack(
         self,
@@ -425,9 +395,7 @@ class NBeatsMoe(BaseWindows):
                         mlp_units=mlp_units,
                         basis=basis,
                         dropout_prob=dropout_prob_theta,
-                        activation=activation,
-                        nr_experts=self.nr_experts,
-                        top_k=self.top_k,
+                        activation=activation
                     )
 
                 # Select type of evaluation and apply it to all layers of block
@@ -445,12 +413,17 @@ class NBeatsMoe(BaseWindows):
         residuals = insample_y.flip(dims=(-1,))  # backcast init
         insample_mask = insample_mask.flip(dims=(-1,))
 
+        # Gate
+        gate = self.gate(insample_y)
+        gate = F.softmax(gate, dim=-1)
+
         forecast = insample_y[:, -1:, None]  # Level with Naive1
         block_forecasts = [forecast.repeat(1, self.h, 1)]
         for i, block in enumerate(self.blocks):
             backcast, block_forecast = block(insample_y=residuals)
             residuals = (residuals - backcast) * insample_mask
-            forecast = forecast + block_forecast
+
+            forecast = forecast + gate[:, i, None, None] * block_forecast
 
             if self.decompose_forecast:
                 block_forecasts.append(block_forecast)

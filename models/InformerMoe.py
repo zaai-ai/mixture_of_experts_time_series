@@ -227,7 +227,11 @@ class InformerMoe(BaseWindows):
         self.dec_in = 1
 
         self.nr_experts = nr_experts
-        self.top_k = top_k if top_k <= nr_experts else nr_experts
+
+        if top_k > nr_experts:
+            raise Exception(f"Check top_k={top_k} <= nr_experts={nr_experts}")
+    
+        self.top_k = top_k
 
         # Embedding
         self.enc_embedding = DataEmbedding(

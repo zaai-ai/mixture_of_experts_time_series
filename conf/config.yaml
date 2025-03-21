@@ -2,7 +2,7 @@
 version_base: 1.1
 
 # List of active models to run (should match keys in the models section)
-active_models: ["nbeats"]
+active_models: ["nbeats", "nbeatsStackMoe", "nbeatsMoe"]
 
 # List of active datasets to run (should match keys in the data section)
 active_datasets: ["m3"]
@@ -86,6 +86,14 @@ models:
       val_check_steps: 100
       batch_size: 32
   nbeatsMoe:
+    params:
+      input_size: 24
+      loss: "HuberLoss"         # Single string value (will be eval'd to a loss instance)
+      valid_loss: "HuberLoss"    # Single string value
+      early_stop_patience_steps: 10  # A single number
+      val_check_steps: 100
+      batch_size: 32
+  nbeatsStackMoe:
     params:
       input_size: 24
       loss: "HuberLoss"         # Single string value (will be eval'd to a loss instance)

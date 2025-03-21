@@ -21,6 +21,7 @@ from models.TimeMoeAdapted import TimeMoeAdapted
 from models.InformerMoe import InformerMoe
 from models.MlpMoe import MLPMoe
 from models.NBeatsMoe import NBeatsMoe
+from models.NBeatsStackMoe import NBeatsStackMoe
 from neuralforecast.models import NHITS
 from neuralforecast.models import NBEATS
 from neuralforecast.models import VanillaTransformer
@@ -50,24 +51,6 @@ class WarmupWithCosineLR(LambdaLR):
 
         return max(min_lr_ratio, min_lr_ratio + (1 - min_lr_ratio) * cosine_ratio)
     
-    # def get_cosine_schedule_with_warmup_min_lr(
-    #         self,
-    #         optimizer: torch.optim.Optimizer,
-    #         num_warmup_steps: int,
-    #         num_training_steps: int,
-    #         num_cycles: float = 0.5,
-    #         min_lr_ratio: float = 0,
-    #         last_epoch: int = -1
-    # ):
-    #     lr_lambda = partial(
-    #         self._get_cosine_schedule_with_warmup_and_min_lr_lambda,
-    #         num_warmup_steps=num_warmup_steps,
-    #         num_training_steps=num_training_steps,
-    #         num_cycles=num_cycles,
-    #         min_lr_ratio=min_lr_ratio,
-    #     )
-    #     return LambdaLR(optimizer, lr_lambda, last_epoch)
-    
     def __init__(self, optimizer,num_training_steps= 100000, num_warmup_steps = 10000 , min_lr = 0.0, last_epoch=-1, verbose=False):
        
         lr_lambda = partial(
@@ -79,21 +62,6 @@ class WarmupWithCosineLR(LambdaLR):
         )
        
         super().__init__(optimizer, lr_lambda, last_epoch)
-
-
-    # def create_scheduler(optimizer, num_training_steps= 10000, num_warmup_steps = 1000 , min_lr = 1e-6):
-    #     """
-    #     Create a scheduler for the optimizer.
-    #     """
-        
-    #     scheduler = get_cosine_schedule_with_warmup_min_lr(
-    #         optimizer,
-    #         num_warmup_steps=num_warmup_steps,
-    #         num_training_steps=num_training_steps,
-    #         min_lr_ratio=min_lr,
-    #     )
-        
-    #     return scheduler
 
 
 
@@ -456,6 +424,30 @@ def get_instance(
         num_training_steps = 10000
 
         model_instance = NBeatsMoe(
+            h=horizon,
+            input_size=input_size_val,
+            max_steps=num_training_steps,
+            loss=eval(loss_str)(),
+            valid_loss=eval(loss_str)(),
+            early_stop_patience_steps=early_stop,
+            batch_size=batch_size_val,
+            # callbacks=[checkpoint_callback],
+            enable_checkpointing=True,
+            val_check_steps=val_check_steps,
+            # scaler_type='standard',
+        )
+    elif model_name.lower() == "nbeatsstackmoe":
+        input_size_val = get_config_value(params.input_size, config_idx)
+        loss_str = get_config_value(params.loss, config_idx)
+        valid_loss_str = get_config_value(params.valid_loss, config_idx)
+        early_stop = get_config_value(
+        params.early_stop_patience_steps, config_idx)
+        batch_size_val = get_config_value(params.batch_size, config_idx)
+        val_check_steps = get_config_value(params.val_check_steps, config_idx)
+
+        num_training_steps = 10000
+
+        model_instance = NBeatsStackMoe(
             h=horizon,
             input_size=input_size_val,
             max_steps=num_training_steps,
