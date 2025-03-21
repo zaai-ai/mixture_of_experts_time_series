@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import optuna
 
 from neuralforecast.losses.pytorch import MAE
 from neuralforecast.common._base_windows import BaseWindows
@@ -206,9 +207,7 @@ class NBEATSBlock(nn.Module):
     def forward(self, insample_y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         theta, gate_logits = self.pooling(insample_y)
         
-        # gate_probs = self.softmax(gate_logits)
-        # top_k_gate_probs, top_k_indices = torch.topk(gate_probs, self.k, dim=1)
-        # print(top_k_indices.unique(return_counts=True))
+
 
         backcast, forecast = self.basis(theta)
         return backcast, forecast
@@ -343,7 +342,7 @@ class NBeatsMoe(BaseWindows):
         )
 
         if top_k > nr_experts:
-            raise Exception(f"Check top_k={top_k} <= nr_experts={nr_experts}")
+            raise optuna.TrialPruned(f"Check top_k={top_k} <= nr_experts={nr_experts}")# raise Exception(
 
         self.nr_experts = nr_experts
         self.top_k = top_k 
