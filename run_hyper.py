@@ -5,6 +5,8 @@ from typing import Dict
 
 from neuralforecast.tsdataset import TimeSeriesDataset
 
+from omegaconf import ListConfig
+
 from ray import tune
 from neuralforecast.auto import BaseAuto
 
@@ -110,8 +112,8 @@ def main(cfg: DictConfig):
     model_info = cfg.model
     horizon = cfg.horizon
 
-    models_names = model_info["name"] if isinstance(model_info["name"], list) else [model_info["name"]]
-    horizons = horizon if isinstance(horizon, list) else [horizon]
+    models_names = model_info["name"] if isinstance(model_info["name"], ListConfig) else [model_info["name"]]
+    horizons = horizon if isinstance(horizon, ListConfig) else [horizon]
 
     if cfg.get("all", True):
         ## get all the possible groups and frequencies of the dataset
