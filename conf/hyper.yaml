@@ -1,7 +1,7 @@
 version_base: 1.1
 
 model:
-  name: [ "nbeats"] # "nbeatsmoe",
+  name: ["nbeats"] # "nbeatsmoe",
 horizon: [4, 6] #, 12, 18, 24]
 
 all: False

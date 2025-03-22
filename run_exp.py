@@ -18,6 +18,7 @@ from utils import load_dataset, train_test_split
 
 from models.NBeatsMoe import NBeatsMoe
 from models.InformerMoe import InformerMoe
+from models.NBeatsStackMoe import NBeatsStackMoe
 from neuralforecast.models import VanillaTransformer
 from neuralforecast.models import NBEATS
 
@@ -26,6 +27,8 @@ def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseMo
         return NBeatsMoe(h=horizon, **best_params)
     elif name.lower() == "nbeats":
         return NBEATS(h=horizon, **best_params)
+    elif name.lower() == "nbeatsstackmoe":
+        return NBeatsStackMoe(h=horizon, **best_params)
     elif name.lower() == "autoinformermoe":
         return InformerMoe(h=horizon, **best_params)
     elif name.lower() == "vanillatransformer":
@@ -33,6 +36,37 @@ def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseMo
     else:
         raise ValueError(
             f"Model '{name}' is not defined.")
+
+def save_results_summary(cfg, std_dev, median, results_file="results_summary.csv"):
+    """
+    Saves model evaluation metrics to a CSV file.
+
+    Parameters:
+        cfg (object): Configuration object containing model and dataset details.
+        std_dev (dict): Dictionary containing standard deviation values for metrics.
+        median (dict): Dictionary containing median values for metrics.
+        results_file (str): Path to the results summary CSV file.
+    """
+    new_row = {
+        "model_name": cfg.model.name,
+        "dataset": cfg.dataset.name,
+        "group": cfg.dataset.group,
+        "std_dev_smape": std_dev["smape"],
+        "std_dev_mae": std_dev["mae"],
+        "std_dev_mse": std_dev["mse"],
+        "median_smape": median["smape"],
+        "median_mae": median["mae"],
+        "median_mse": median["mse"],
+    }
+
+    try:
+        results_summary = pd.read_csv(results_file)
+        results_summary = pd.concat([results_summary, pd.DataFrame([new_row])], ignore_index=True)
+    except FileNotFoundError:
+        results_summary = pd.DataFrame([new_row])
+
+    results_summary.to_csv(results_file, index=False)
+
 
 @hydra.main(config_path="conf", config_name="hyper.yaml")
 def main(cfg: DictConfig):
@@ -94,6 +128,8 @@ def main(cfg: DictConfig):
     print("\nMedian:")
     print(median.round(4))
 
+    # Save results to a CSV file with the specified columns
+    save_results_summary(cfg, std_dev, median, results_file="results_summary.csv")
 
 if __name__ == "__main__":
     main()
