@@ -8,6 +8,7 @@ from typing import Any
 
 from neuralforecast.common._base_windows import BaseModel
 from neuralforecast.tsdataset import TimeSeriesDataset
+from neuralforecast import NeuralForecast
 
 import optuna
 from neuralforecast.losses.numpy import smape, mae, mse
@@ -42,7 +43,7 @@ def main(cfg: DictConfig):
     dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
     test_dataset, *_ = TimeSeriesDataset.from_df(Y_test_df)
 
-    study_name = f"{cfg.model.name}_{cfg.dataset.name}_{cfg.horizon}"
+    study_name = f"{cfg.model.name}_{cfg.dataset.name}_{cfg.dataset.group}_{cfg.horizon}"
     
     study = optuna.load_study(
         study_name=study_name,
@@ -57,13 +58,15 @@ def main(cfg: DictConfig):
         best_params["random_seed"] = random_seed
 
         model = get_instance(cfg.model.name, best_params, cfg.horizon)
-        model.fit(dataset)
+
+        fcst = NeuralForecast(models=[model], freq=cfg.dataset.freq)
+        fcst.fit(df=Y_train_df, static_df=None, val_size=cfg.horizon)
 
         # Evaluate on the test dataset
-        Y_pred_df = model.predict(test_dataset)
+        Y_pred_df = fcst.predict(futr_df=Y_test_df)
 
         y_true = Y_test_df['y'].values
-        y_hat = Y_pred_df
+        y_hat = Y_pred_df[model.__class__.__name__].values
 
         n_series = Y_test_df['unique_id'].nunique()
         y_true = y_true.reshape(n_series, -1)
