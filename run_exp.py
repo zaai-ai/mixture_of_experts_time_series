@@ -51,6 +51,7 @@ def save_results_summary(cfg, std_dev, median, results_file="results_summary.csv
         "model_name": cfg.model.name,
         "dataset": cfg.dataset.name,
         "group": cfg.dataset.group,
+        "horizon": cfg.horizon,
         "std_dev_smape": std_dev["smape"],
         "std_dev_mae": std_dev["mae"],
         "std_dev_mse": std_dev["mse"],
@@ -86,8 +87,9 @@ def main(cfg: DictConfig):
 
     results = {"smape": [], "mae": [], "mse": []}
 
-    for _ in range(10):
-        random_seed = random.randint(1, 1000)
+    list_random_seeds = random.sample(range(1, 1000), 20)
+    for i in range(20):
+        random_seed = list_random_seeds[i]
         best_params = deepcopy(study.best_params)
         best_params["random_seed"] = random_seed
 
@@ -125,11 +127,11 @@ def main(cfg: DictConfig):
 
     print("Standard Deviation:")
     print(std_dev.round(4))
-    print("\nMedian:")
+    print("\nMedian:")   
     print(median.round(4))
 
     # Save results to a CSV file with the specified columns
-    save_results_summary(cfg, std_dev, median, results_file="results_summary.csv")
+    save_results_summary(cfg, std_dev, median, results_file="C:\\Users\\ricar\\mixture_of_experts_time_series\\results_summary.csv")
 
 if __name__ == "__main__":
     main()
