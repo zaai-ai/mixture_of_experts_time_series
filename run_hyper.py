@@ -41,6 +41,7 @@ def get_model(name: str, horizon: int, study_name: str):
             "windows_batch_size": tune.choice([128, 256, 512, 1024]),
             "random_seed": tune.randint(1, 20),
             "early_stop_patience_steps": tune.choice([5, 10, 20]),
+            "start_padding_enabled": tune.choice([True]),
         }
 
         return AutoNBEATS(

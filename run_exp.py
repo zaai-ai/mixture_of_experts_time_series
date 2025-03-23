@@ -26,8 +26,10 @@ def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseMo
     if name.lower() == "nbeatsmoe":
         return NBeatsMoe(h=horizon, **best_params)
     elif name.lower() == "nbeats":
+        best_params["scaler_type"] = "identity"
         return NBEATS(h=horizon, **best_params)
     elif name.lower() == "nbeatsstackmoe":
+        best_params["scaler_type"] = "identity"
         return NBeatsStackMoe(h=horizon, **best_params)
     elif name.lower() == "autoinformermoe":
         return InformerMoe(h=horizon, **best_params)
@@ -80,6 +82,9 @@ def main(cfg: DictConfig):
 
     study_name = f"{cfg.model.name}_{cfg.dataset.name}_{cfg.dataset.group}_{cfg.horizon}"
     
+    if cfg.model.name.lower() == "nbeatsstackmoe":
+        study_name = study_name.replace("stackmoe", "")
+
     study = optuna.load_study(
         study_name=study_name,
         storage="sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
