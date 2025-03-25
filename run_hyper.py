@@ -14,7 +14,7 @@ from neuralforecast.auto import BaseAuto
 
 from models.auto.AutoNbeatsMoe import AutoNBEATSMoE
 from models.auto.AutoInformerMoe import AutoInformerMoe
-from neuralforecast.auto import AutoNBEATS, AutoVanillaTransformer
+from neuralforecast.auto import AutoNBEATS, AutoVanillaTransformer, AutoMLP
 
 
 def get_model(name: str, horizon: int, study_name: str):
@@ -55,7 +55,7 @@ def get_model(name: str, horizon: int, study_name: str):
             "load_if_exists": True
             }
         )
-    elif name.lower() == "autoinformermoe":
+    elif name.lower() == "informermoe":
         return AutoInformerMoe(
             h=horizon, 
             num_samples=20,
@@ -68,6 +68,17 @@ def get_model(name: str, horizon: int, study_name: str):
         )
     elif name.lower() == "vanillatransformer":
         return AutoVanillaTransformer(
+            h=horizon, 
+            num_samples=20,
+            backend="optuna",
+            optuna_kargs={
+            "study_name": study_name,
+            "storage": "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
+            "load_if_exists": True
+            }
+        )
+    elif name.lower() == "mlp":
+        return AutoMLP(
             h=horizon, 
             num_samples=20,
             backend="optuna",

@@ -98,6 +98,8 @@ def main(cfg: DictConfig):
         best_params = deepcopy(study.best_params)
         best_params["random_seed"] = random_seed
 
+        print(f"best_params: {best_params}")
+
         model = get_instance(cfg.model.name, best_params, cfg.horizon)
 
         fcst = NeuralForecast(models=[model], freq=cfg.dataset.freq)
