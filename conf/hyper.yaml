@@ -2,7 +2,7 @@ version_base: 1.1
 
 model:
   name:  ["informermoe"] # ["nbeats"] # ["nbeats"] # "nbeatsmoe",
-horizon: [12,18,24] # [12, 18, 24] #  [4, 6] #, 12, 18, 24]
+horizon: [24] # [12, 18, 24] #  [4, 6] #, 12, 18, 24]
 
 all: False
 

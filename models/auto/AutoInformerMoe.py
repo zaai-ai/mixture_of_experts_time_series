@@ -25,6 +25,7 @@ class AutoInformerMoe(BaseAuto):
         "random_seed": tune.randint(1, 20),
         "nr_experts": tune.choice([pow(2,x) for x in range(1, 5)]),
         "top_k": tune.choice([x + 1 for x in range(0, 16)]),
+        "start_padding_enabled": tune.choice([True]),
     }
 
     def __init__(
