@@ -33,7 +33,7 @@ def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseMo
     elif name.lower() == "nbeatsstackmoe":
         best_params["scaler_type"] = "identity"
         return NBeatsStackMoe(h=horizon, **best_params)
-    elif name.lower() == "autoinformermoe":
+    elif name.lower() == "informermoe":
         return InformerMoe(h=horizon, **best_params)
     elif name.lower() == "vanillatransformer":
         return VanillaTransformer(h=horizon, **best_params)
@@ -77,10 +77,9 @@ def save_results_summary(cfg, std_dev, median, results_file="results_summary.csv
 def main(cfg: DictConfig):
     Y_ALL = load_dataset(cfg.dataset.name, cfg.dataset)
 
-    Y_train_df, Y_test_df = train_test_split(Y_ALL, cfg.horizon)
 
-    dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
-    test_dataset, *_ = TimeSeriesDataset.from_df(Y_test_df)
+    # dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
+    # test_dataset, *_ = TimeSeriesDataset.from_df(Y_test_df)
 
     model_info = cfg.model
     horizon = cfg.horizon
@@ -90,9 +89,11 @@ def main(cfg: DictConfig):
 
     for model_name in models_names:
         for horizon in horizons:
-            study_name = f"{model_name["name"]}_{cfg.dataset.name}_{cfg.dataset.group}_{horizon}"
+            Y_train_df, Y_test_df = train_test_split(Y_ALL, horizon)
+
+            study_name = f"{model_name}_{cfg.dataset.name}_{cfg.dataset.group}_{horizon}"
             
-            if model_name["name"].lower() == "nbeatsstackmoe":
+            if model_name.lower() == "nbeatsstackmoe":
                 study_name = study_name.replace("stackmoe", "")
 
             study = optuna.load_study(
@@ -110,7 +111,7 @@ def main(cfg: DictConfig):
 
                 print(f"best_params: {best_params}")
 
-                model = get_instance(model_name["name"], best_params, horizon)
+                model = get_instance(model_name, best_params, horizon)
 
                 fcst = NeuralForecast(models=[model], freq=cfg.dataset.freq)
                 fcst.fit(df=Y_train_df, static_df=None, val_size=horizon)

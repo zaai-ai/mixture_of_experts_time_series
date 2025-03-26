@@ -8,6 +8,7 @@ from neuralforecast.common._base_windows import BaseWindows
 from neuralforecast.losses.pytorch import MAE
 from models.pooling_methods.methods import SparsePooling
 import math
+import optuna
 
 from neuralforecast.common._modules import (
     TransEncoderLayer,
@@ -229,7 +230,8 @@ class InformerMoe(BaseWindows):
         self.nr_experts = nr_experts
 
         if top_k > nr_experts:
-            raise Exception(f"Check top_k={top_k} <= nr_experts={nr_experts}")
+            raise optuna.TrialPruned(f"Check top_k={top_k} <= nr_experts={nr_experts}")# raise Exception(
+            # raise Exception(f"Check top_k={top_k} <= nr_experts={nr_experts}")
     
         self.top_k = top_k
 
