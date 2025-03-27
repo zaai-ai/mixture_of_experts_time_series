@@ -21,7 +21,7 @@ def get_model(name: str, horizon: int, study_name: str):
     if name.lower() == "nbeatsmoe":
         return AutoNBEATSMoE(
             h=horizon, 
-            num_samples=100,
+            num_samples=20,
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,
@@ -47,7 +47,7 @@ def get_model(name: str, horizon: int, study_name: str):
         return AutoNBEATS(
             h=horizon, 
             config=BaseAuto._ray_config_to_optuna(config),
-            num_samples=100,
+            num_samples=20,
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,

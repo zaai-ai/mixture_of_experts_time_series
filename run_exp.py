@@ -41,7 +41,7 @@ def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseMo
         raise ValueError(
             f"Model '{name}' is not defined.")
 
-def save_results_summary(cfg, std_dev, median, results_file="results_summary.csv"):
+def save_results_summary(model_name, dataset, horizon, std_dev, median, results_file="results_summary.csv"):
     """
     Saves model evaluation metrics to a CSV file.
 
@@ -52,10 +52,10 @@ def save_results_summary(cfg, std_dev, median, results_file="results_summary.csv
         results_file (str): Path to the results summary CSV file.
     """
     new_row = {
-        "model_name": cfg.model.name,
-        "dataset": cfg.dataset.name,
-        "group": cfg.dataset.group,
-        "horizon": cfg.horizon,
+        "model_name": model_name,
+        "dataset": dataset.name,
+        "group": dataset.group,
+        "horizon": horizon,
         "std_dev_smape": std_dev["smape"],
         "std_dev_mae": std_dev["mae"],
         "std_dev_mse": std_dev["mse"],
@@ -149,7 +149,7 @@ def main(cfg: DictConfig):
             print(median.round(4))
 
             # Save results to a CSV file with the specified columns
-            save_results_summary(cfg, std_dev, median, results_file="C:\\Users\\ricar\\mixture_of_experts_time_series\\results_summary.csv")
+            save_results_summary(model_name, cfg.dataset, horizon, std_dev, median, results_file="C:\\Users\\ricar\\mixture_of_experts_time_series\\results_summary.csv")
 
 if __name__ == "__main__":
     main()
