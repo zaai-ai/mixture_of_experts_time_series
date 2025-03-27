@@ -97,7 +97,7 @@ def main(cfg: DictConfig):
                 study_name = study_name.replace("stackmoe", "")
 
             tentatives = 0
-            while tentatives < 20:
+            while tentatives < 24:
                 try:
                     study = optuna.load_study(
                         study_name=study_name,
@@ -109,6 +109,8 @@ def main(cfg: DictConfig):
                     # change study name to search for a new horizon
                     tentatives += 1
                     study_name = f"{model_name}_{cfg.dataset.name}_{cfg.dataset.group}_{horizon + tentatives}"
+                    if model_name.lower() == "nbeatsstackmoe":
+                        study_name = study_name.replace("stackmoe", "")
 
             if tentatives == 10:
                 print("Error: There is no study available")
