@@ -96,10 +96,22 @@ def main(cfg: DictConfig):
             if model_name.lower() == "nbeatsstackmoe":
                 study_name = study_name.replace("stackmoe", "")
 
-            study = optuna.load_study(
-                study_name=study_name,
-                storage="sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
-            )
+            tentatives = 0
+            while tentatives < 20:
+                try:
+                    study = optuna.load_study(
+                        study_name=study_name,
+                        storage="sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
+                    )
+                    break
+                except KeyError:
+                    print(f"Error: There is no study with the name '{study_name}'.")
+                    # change study name to search for a new horizon
+                    tentatives += 1
+                    study_name = f"{model_name}_{cfg.dataset.name}_{cfg.dataset.group}_{horizon + tentatives}"
+
+            if tentatives == 10:
+                print("Error: There is no study available")
 
             results = {"smape": [], "mae": [], "mse": []}
 

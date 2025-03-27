@@ -102,7 +102,7 @@ def run_pipeline(dataset_info: Dict[str, str], model_info: Dict[str, str], horiz
 
     study_name = f"{model_info['name']}_{dataset_info['name']}_{dataset_info['group']}_{horizon}"
     model = get_model(model_info["name"], horizon, study_name)
-
+    
     model.fit(dataset)
 
 
