@@ -117,8 +117,8 @@ def main(cfg: DictConfig):
 
             results = {"smape": [], "mae": [], "mse": []}
 
-            list_random_seeds = random.sample(range(1, 1000), 20)
-            for i in range(20):
+            list_random_seeds = random.sample(range(1, 1000), 10)
+            for i in range(10):
                 random_seed = list_random_seeds[i]
                 best_params = deepcopy(study.best_params)
                 best_params["random_seed"] = random_seed
