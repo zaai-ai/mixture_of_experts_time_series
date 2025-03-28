@@ -1,14 +1,14 @@
 version_base: 1.1
 
 model:
-  name:  ["nbeats", "nbeatsmoe", "nbeatsstackmoe"] # ["nbeats"] # ["nbeats"] # "nbeatsmoe",
-horizon: [2,4,6,8] # [12, 18, 24] #  [4, 6] #, 12, 18, 24]
+  name:  ["nbeatsstackmoe"] # ["nbeats"] # ["nbeats"] # "nbeatsmoe",
+horizon: [2,3,4] # [12, 18, 24] #  [4, 6] #, 12, 18, 24]
 
 all: False
 
 dataset:
-  name: "m4"
-  directory: "C:\\Users\\ricar\\mixture_of_experts_time_series\\data\\m4\\"
-  group: "Quarterly"
-  freq: 1
-  
+  name: "m3"
+  directory: "C:\\Users\\ricar\\mixture_of_experts_time_series\\data\\m3\\"
+  group: "Yearly"
+  freq: "Y"
+     
