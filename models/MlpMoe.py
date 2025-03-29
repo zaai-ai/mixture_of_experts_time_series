@@ -8,6 +8,7 @@ from .pooling_methods import SparsePooling
 
 # type hints
 from typing import Optional
+import optuna
 
 
 class MLPMoe(BaseWindows):
@@ -49,6 +50,8 @@ class MLPMoe(BaseWindows):
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
         dataloader_kwargs=None,
+        nr_experts=4,
+        top_k=1,
         **trainer_kwargs
     ):
 
@@ -88,6 +91,13 @@ class MLPMoe(BaseWindows):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
 
+        self.nr_experts = nr_experts
+        self.top_k = top_k
+
+        if self.nr_experts < self.top_k:
+            raise optuna.TrialPruned(f"Check top_k={top_k} <= nr_experts={nr_experts}")# raise Exception(
+
+
         input_size_first_layer = (
             input_size
             + self.hist_exog_size * input_size
@@ -108,97 +118,98 @@ class MLPMoe(BaseWindows):
         #     in_features=hidden_size, out_features=h * self.loss.outputsize_multiplier
         # )
         self.out = SparsePooling(
-            experts=[nn.Linear(hidden_size, h * self.loss.outputsize_multiplier, bias=True) for _ in range(8)],
+            experts=[nn.Linear(hidden_size, h * self.loss.outputsize_multiplier, bias=True) for _ in range(self.nr_experts)],
             gate=nn.Sequential(
-                # nn.LayerNorm(hidden_size),
-                nn.Linear(in_features=hidden_size, out_features=8)
+                nn.LayerNorm(hidden_size),
+                nn.Linear(in_features=hidden_size, out_features=self.nr_experts),
                 ),
             out_features=h * self.loss.outputsize_multiplier,
-            k=1,
+            k=self.top_k,
             unpack=False,
-            return_soft_gates=True
+            return_soft_gates=True,
+            bias=True
         )
 
         self.gate_probs = None
 
-    def training_step(self, batch, batch_idx):
-        # Create and normalize windows [Ws, L+H, C]
-        windows = self._create_windows(batch, step="train")
-        y_idx = batch["y_idx"]
-        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, y_idx])
-        windows = self._normalization(windows=windows, y_idx=y_idx)
+    # def training_step(self, batch, batch_idx):
+    #     # Create and normalize windows [Ws, L+H, C]
+    #     windows = self._create_windows(batch, step="train")
+    #     y_idx = batch["y_idx"]
+    #     original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, y_idx])
+    #     windows = self._normalization(windows=windows, y_idx=y_idx)
 
-        # Parse windows
-        (
-            insample_y,
-            insample_mask,
-            outsample_y,
-            outsample_mask,
-            hist_exog,
-            futr_exog,
-            stat_exog,
-        ) = self._parse_windows(batch, windows)
+    #     # Parse windows
+    #     (
+    #         insample_y,
+    #         insample_mask,
+    #         outsample_y,
+    #         outsample_mask,
+    #         hist_exog,
+    #         futr_exog,
+    #         stat_exog,
+    #     ) = self._parse_windows(batch, windows)
 
-        windows_batch = dict(
-            insample_y=insample_y,  # [Ws, L]
-            insample_mask=insample_mask,  # [Ws, L]
-            futr_exog=futr_exog,  # [Ws, L + h, F]
-            hist_exog=hist_exog,  # [Ws, L, X]
-            stat_exog=stat_exog,
-        )  # [Ws, S]
+    #     windows_batch = dict(
+    #         insample_y=insample_y,  # [Ws, L]
+    #         insample_mask=insample_mask,  # [Ws, L]
+    #         futr_exog=futr_exog,  # [Ws, L + h, F]
+    #         hist_exog=hist_exog,  # [Ws, L, X]
+    #         stat_exog=stat_exog,
+    #     )  # [Ws, S]
 
-        # Model Predictions
-        output = self(windows_batch)
-        if self.loss.is_distribution_output:
-            _, y_loc, y_scale = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"], y_idx=y_idx
-            )
-            outsample_y = original_outsample_y
-            distr_args = self.loss.scale_decouple(
-                output=output, loc=y_loc, scale=y_scale
-            )
-            loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
-        else:
-            loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
+    #     # Model Predictions
+    #     output = self(windows_batch)
+    #     if self.loss.is_distribution_output:
+    #         _, y_loc, y_scale = self._inv_normalization(
+    #             y_hat=outsample_y, temporal_cols=batch["temporal_cols"], y_idx=y_idx
+    #         )
+    #         outsample_y = original_outsample_y
+    #         distr_args = self.loss.scale_decouple(
+    #             output=output, loc=y_loc, scale=y_scale
+    #         )
+    #         loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
+    #     else:
+    #         loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
 
-        # gate probs: [Batch, top_k] for sparse pooling
-        # we want a loss that diversifies the experts used
-        # gate_probs is like [[2], [1], ...]
-        # we want to maximize the entropy of this distribution
-        # so we want to minimize the entropy of the negative distribution
+    #     # gate probs: [Batch, top_k] for sparse pooling
+    #     # we want a loss that diversifies the experts used
+    #     # gate_probs is like [[2], [1], ...]
+    #     # we want to maximize the entropy of this distribution
+    #     # so we want to minimize the entropy of the negative distribution
 
-        gate_probs = self.gate_probs
+    #     gate_probs = self.gate_probs
 
-        gate_probs = torch.softmax(gate_probs, dim=1)
-        gate_probs = torch.clamp(gate_probs, min=1e-7, max=1 - 1e-7)
+    #     gate_probs = torch.softmax(gate_probs, dim=1)
+    #     gate_probs = torch.clamp(gate_probs, min=1e-7, max=1 - 1e-7)
         
-        # Calculate entropy of gate_probs
-        entropy = -torch.sum(gate_probs * torch.log(gate_probs), dim=1)
+    #     # Calculate entropy of gate_probs
+    #     entropy = -torch.sum(gate_probs * torch.log(gate_probs), dim=1)
         
-        # Calculate auxiliary loss to maximize entropy
-        aux_loss = -torch.mean(entropy)
+    #     # Calculate auxiliary loss to maximize entropy
+    #     aux_loss = -torch.mean(entropy)
         
-        # Add auxiliary loss to the main loss
-        loss += aux_loss * 0.02
+    #     # Add auxiliary loss to the main loss
+    #     loss += aux_loss * 0.02
 
 
 
-        if torch.isnan(loss):
-            print("Model Parameters", self.hparams)
-            print("insample_y", torch.isnan(insample_y).sum())
-            print("outsample_y", torch.isnan(outsample_y).sum())
-            print("output", torch.isnan(output).sum())
-            raise Exception("Loss is NaN, training stopped.")
+    #     if torch.isnan(loss):
+    #         print("Model Parameters", self.hparams)
+    #         print("insample_y", torch.isnan(insample_y).sum())
+    #         print("outsample_y", torch.isnan(outsample_y).sum())
+    #         print("output", torch.isnan(output).sum())
+    #         raise Exception("Loss is NaN, training stopped.")
 
-        self.log(
-            "train_loss",
-            loss.detach().item(),
-            batch_size=outsample_y.size(0),
-            prog_bar=True,
-            on_epoch=True,
-        )
-        self.train_trajectories.append((self.global_step, loss.detach().item()))
-        return loss
+    #     self.log(
+    #         "train_loss",
+    #         loss.detach().item(),
+    #         batch_size=outsample_y.size(0),
+    #         prog_bar=True,
+    #         on_epoch=True,
+    #     )
+    #     self.train_trajectories.append((self.global_step, loss.detach().item()))
+    #     return loss
 
 
     def forward(self, windows_batch):

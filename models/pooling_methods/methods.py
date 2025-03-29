@@ -96,7 +96,8 @@ class SparsePooling(BasePooling):
         k: int = 3,
         device: Optional[torch.device] = None,
         unpack: bool = True,
-        return_soft_gates: bool = False
+        return_soft_gates: bool = False,
+        bias: bool = True
     ) -> None:
         """
         Args:
@@ -109,6 +110,8 @@ class SparsePooling(BasePooling):
         super(SparsePooling, self).__init__(experts, gate, out_features, device, unpack, return_soft_gates)
         self.k: int = k
 
+        self.bias: nn.Parameter = nn.Parameter(torch.empty(len(experts))) if bias else None
+
     def forward(self, windows_batch: dict) -> torch.Tensor:
 
         if self.unpack: insample_y = windows_batch['insample_y']
@@ -117,12 +120,25 @@ class SparsePooling(BasePooling):
         # Compute the gate logits. Shape: [batch, num_experts]
         gate_logits: torch.Tensor = self.gate(insample_y)
 
+        # original logits
+        original_gate_logits = gate_logits.clone()
+
+        if self.bias is not None:
+            gate_logits += self.bias
+
         # Select the top-k experts for each sample.
         # topk_values & topk_indices have shape: [batch, k]
         topk_values, topk_indices = torch.topk(gate_logits, self.k, dim=1)
 
+        # print(f"topk_indices: {topk_indices}")
+
+        if self.bias is not None:
+            topk_original_values = torch.gather(original_gate_logits, 1, topk_indices)
+        else:
+            topk_original_values = topk_values
+
         # Compute probabilities for the top-k experts using softmax.
-        gate_probs: torch.Tensor = self.softmax(topk_values)
+        gate_probs: torch.Tensor = self.softmax(topk_original_values)
 
         # Initialize the weighted sum output.
         weighted_sum = torch.zeros(
@@ -131,7 +147,6 @@ class SparsePooling(BasePooling):
         
         num_experts = len(self.experts)
         # Group contributions by expert.
-        # TODO: check if it is working
         for expert_idx in range(num_experts):
 
             # Create a mask of shape [batch, k] indicating where expert_idx was selected.

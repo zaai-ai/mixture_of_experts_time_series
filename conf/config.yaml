@@ -108,7 +108,7 @@ data:
     directory: "C:\\Users\\ricar\\mixture_of_experts_time_series\\data\\m3\\"
     group: "Monthly"
     freq: "M"
-    horizons: [6]
+    horizons: [18]
   m4:
     directory: "C:\\Users\\ricar\\mixture_of_experts_time_series\\data\\m4\\"
     group: "Monthly"
