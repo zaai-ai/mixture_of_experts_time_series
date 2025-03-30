@@ -24,10 +24,10 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
         if n_lags:
             config = {
                 "h": None,
-                "input_size": n_lags,
+                "input_size": tune.choice([n_lags]),
                 "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(8)]),
                 "learning_rate": tune.loguniform(1e-4, 1e-1),
-                "scaler_type": tune.choice(["identity"]),
+                "scaler_type": tune.choice(["identity", "minmax", "robust", "standard"]),
                 "max_steps": tune.choice([1000, 2500, 5000]),
                 "batch_size": tune.choice([32, 64, 128, 256]),
                 "windows_batch_size": tune.choice([128, 256, 512, 1024]),
@@ -38,6 +38,7 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
                 "start_padding_enabled": tune.choice([True]),
             }
             config = BaseAuto._ray_config_to_optuna(config)
+
         return AutoNBEATSMoE(
             h=horizon, 
             num_samples=20,
@@ -51,7 +52,7 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
         )
     elif name.lower() == "nbeats":
         config = {
-            "input_size": n_lags if n_lags else tune.choice([horizon * x for x in [1, 2, 3, 4, 5]]),
+            "input_size": tune.choice([n_lags]) if n_lags else tune.choice([horizon * x for x in [1, 2, 3, 4, 5]]),
             # "stack_types": tune.choice([["identity", "trend", "seasonality"], ["identity", "trend"]]),
             "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(9)]),
             "learning_rate": tune.loguniform(1e-4, 1e-1),
