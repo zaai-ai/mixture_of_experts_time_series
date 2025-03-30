@@ -3,7 +3,7 @@ from pprint import pprint
 import pandas as pd
 from gluonts.dataset.repository.datasets import get_dataset, dataset_names
 
-from base import LoadDataset
+from .base import LoadDataset
 
 
 # pprint(dataset_names)

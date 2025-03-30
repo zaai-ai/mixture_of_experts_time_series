@@ -18,11 +18,30 @@ from models.auto.AutoMlpMoe import AutoMLPMoe
 from neuralforecast.auto import AutoNBEATS, AutoVanillaTransformer, AutoMLP
 
 
-def get_model(name: str, horizon: int, study_name: str):
+def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
     if name.lower() == "nbeatsmoe":
+        config = None
+        if n_lags:
+            config = {
+                "h": None,
+                "input_size": n_lags,
+                "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(8)]),
+                "learning_rate": tune.loguniform(1e-4, 1e-1),
+                "scaler_type": tune.choice(["identity"]),
+                "max_steps": tune.choice([1000, 2500, 5000]),
+                "batch_size": tune.choice([32, 64, 128, 256]),
+                "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+                "random_seed": tune.randint(1, 20),
+                "nr_experts": tune.choice([pow(2,x) for x in range(1, 4)]),
+                "top_k": tune.choice([pow(2,x) for x in range(0, 4)]),
+                "early_stop_patience_steps": tune.choice([5, 10, 20]),
+                "start_padding_enabled": tune.choice([True]),
+            }
+            config = BaseAuto._ray_config_to_optuna(config)
         return AutoNBEATSMoE(
             h=horizon, 
             num_samples=20,
+            config=config,
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,
@@ -32,7 +51,7 @@ def get_model(name: str, horizon: int, study_name: str):
         )
     elif name.lower() == "nbeats":
         config = {
-            "input_size": tune.choice([horizon * x for x in [1, 2, 3, 4, 5]]),
+            "input_size": n_lags if n_lags else tune.choice([horizon * x for x in [1, 2, 3, 4, 5]]),
             # "stack_types": tune.choice([["identity", "trend", "seasonality"], ["identity", "trend"]]),
             "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(9)]),
             "learning_rate": tune.loguniform(1e-4, 1e-1),
@@ -107,13 +126,17 @@ def get_model(name: str, horizon: int, study_name: str):
 
 def run_pipeline(dataset_info: Dict[str, str], model_info: Dict[str, str], horizon: int):
     Y_ALL = load_dataset(dataset_info["name"], dataset_info)
+    n_lags = None
+
+    if type(Y_ALL) == tuple:
+        Y_ALL, horizon, n_lags, dataset_info['group'], _ = Y_ALL
 
     Y_train_df, Y_test_df = train_test_split(Y_ALL, horizon)
 
     dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
 
     study_name = f"{model_info['name']}_{dataset_info['name']}_{dataset_info['group']}_{horizon}"
-    model = get_model(model_info["name"], horizon, study_name)
+    model = get_model(model_info["name"], horizon, study_name, n_lags=n_lags)
     
     model.fit(dataset)
 

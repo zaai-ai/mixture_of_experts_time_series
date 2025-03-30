@@ -13,6 +13,7 @@ from functools import partial
 from neuralforecast.losses.pytorch import SMAPE, HuberLoss, MSE
 
 from torch.optim.lr_scheduler import LambdaLR, LRScheduler
+from datasets.load_data.gluonts_dataset import GluontsDataset
 
 # Import your model classes (here we assume the module name matches the
 # model name)
@@ -91,6 +92,12 @@ def load_dataset(dataset_name: str, dataset_cfg: DictConfig):
         df['ds'] = pd.to_datetime(df['ds']).astype(int)
 
         return df
+    elif dataset_name.startswith("gluonts_"):
+        group = dataset_name.replace("gluonts_", "")
+        print(f"Loading {group} dataset...")
+        df, horizon, n_lags, freq_str, freq_int = GluontsDataset.load_everything(group)
+
+        return df, horizon, n_lags, freq_str, freq_int
     else:
         raise ValueError(
             f"Loading method for dataset '{dataset_name}' is not defined.")
