@@ -2,10 +2,10 @@
 version_base: 1.1
 
 # List of active models to run (should match keys in the models section)
-active_models: ["mlp"]
+active_models: ["nbeats"]
 
 # List of active datasets to run (should match keys in the data section)
-active_datasets: ["m3"]
+active_datasets: ["gluonts_m1_quarterly"]
 
 models: 
   simpleMoe:
@@ -114,8 +114,10 @@ data:
     group: "Monthly"
     freq: 1
     horizons: [18]
-
-
+  gluonts_m1_quarterly:
+    group: "Quarterly"
+    freq: "Q"
+    horizons: [8]
 plot:
   default_plot:
     figsize: [20, 7]

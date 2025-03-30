@@ -77,6 +77,10 @@ def save_results_summary(model_name, dataset, horizon, std_dev, median, results_
 def main(cfg: DictConfig):
     Y_ALL = load_dataset(cfg.dataset.name, cfg.dataset)
 
+    if type(Y_ALL) == tuple:
+        Y_ALL, cfg.horizon, n_lags, cfg.dataset.group, _ = Y_ALL
+        cfg.dataset.freq = cfg.dataset.group
+        cfg.dataset.name = cfg.dataset.name.replace(" ", "_")
 
     # dataset, *_ = TimeSeriesDataset.from_df(Y_train_df)
     # test_dataset, *_ = TimeSeriesDataset.from_df(Y_test_df)

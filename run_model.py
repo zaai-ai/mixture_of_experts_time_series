@@ -177,6 +177,8 @@ def run_exp(cfg: DictConfig):
 
         try:
             Y_ALL = load_dataset(dataset_name, dataset_cfg)
+            if type(Y_ALL) == tuple:
+                Y_ALL = Y_ALL[0]
         except Exception as e:
             print(e)
             continue

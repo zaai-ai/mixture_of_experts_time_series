@@ -2,12 +2,12 @@ version_base: 1.1
 
 model:
   name:  ["nbeats", "nbeatsmoe"] # ["nbeats"] # ["nbeats"] # "nbeatsmoe",
-horizon: [2,3,4] # [12, 18, 24] #  [4, 6] #, 12, 18, 24]
+horizon: [2] # [12, 18, 24] #  [4, 6] #, 12, 18, 24]
 
 all: False
 
 dataset:
-  name: "m4"
+  name: "gluonts_m1_quarterly"
   directory: "C:\\Users\\ricar\\mixture_of_experts_time_series\\data\\m4\\"
   group: "Yearly"
   freq: 1
