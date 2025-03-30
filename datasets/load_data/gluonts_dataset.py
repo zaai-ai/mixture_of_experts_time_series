@@ -3,7 +3,7 @@ from pprint import pprint
 import pandas as pd
 from gluonts.dataset.repository.datasets import get_dataset, dataset_names
 
-from datasets.load_data.base import LoadDataset
+from base import LoadDataset
 
 
 # pprint(dataset_names)
@@ -105,3 +105,6 @@ class GluontsDataset(LoadDataset):
             df = cls.prune_df_by_size(df, min_n_instances)
 
         return df
+
+
+

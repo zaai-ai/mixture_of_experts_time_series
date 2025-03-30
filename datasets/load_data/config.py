@@ -1,5 +1,6 @@
 from datasets.load_data.tourism import TourismDataset
-from datasets.load_data.gluonts import GluontsDataset
+from datasets.load_data.gluonts_dataset import GluontsDataset
+
 
 DATASETS = {
     'M3': M3Dataset,
