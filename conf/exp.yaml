@@ -7,7 +7,7 @@ horizon: [2] # [12, 18, 24] #  [4, 6] #, 12, 18, 24]
 all: False
 
 dataset:
-  name: "gluonts_m1_quarterly"
+  name: "gluonts_tourism_monthly"
   directory: "C:\\Users\\ricar\\mixture_of_experts_time_series\\data\\m4\\"
   group: "Yearly"
   freq: 1
