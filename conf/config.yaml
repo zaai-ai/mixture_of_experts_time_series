@@ -5,7 +5,7 @@ version_base: 1.1
 active_models: ["nbeats"]
 
 # List of active datasets to run (should match keys in the data section)
-active_datasets: ["gluonts_m1_quarterly"]
+active_datasets: ["gluonts_tourism_monthly"]
 
 models: 
   simpleMoe:
@@ -118,6 +118,10 @@ data:
     group: "Quarterly"
     freq: "Q"
     horizons: [8]
+  gluonts_tourism_monthly:
+    group: "Monthly"
+    freq: "M"
+    horizons: [12]
 plot:
   default_plot:
     figsize: [20, 7]

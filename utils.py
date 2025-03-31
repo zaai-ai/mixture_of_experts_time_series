@@ -97,6 +97,8 @@ def load_dataset(dataset_name: str, dataset_cfg: DictConfig):
         print(f"Loading {group} dataset...")
         df, horizon, n_lags, freq_str, freq_int = GluontsDataset.load_everything(group)
 
+        df['y'] = df['y'].astype(float)
+
         return df, horizon, n_lags, freq_str, freq_int
     else:
         raise ValueError(

@@ -131,7 +131,7 @@ def plot_forecasts(
     plt.figure(figsize=(plot_cfg.figsize[0], plot_cfg.figsize[1]))
 
     # Plot only the last 10 series
-    unique_ids = gt_df['unique_id'].unique()[-10:]
+    unique_ids = gt_df['unique_id'].unique()[-100:]
 
     # Plot ground truth and forecasts
     for unique_id in unique_ids:
