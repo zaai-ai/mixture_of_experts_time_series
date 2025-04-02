@@ -97,8 +97,6 @@ def main(cfg: DictConfig):
 
             study_name = f"{model_name}_{cfg.dataset.name}_{cfg.dataset.group}_{horizon}"
             
-            if model_name.lower() == "nbeatsstackmoe":
-                study_name = study_name.replace("stackmoe", "")
 
             tentatives = 0
             while tentatives < 24:
@@ -113,8 +111,6 @@ def main(cfg: DictConfig):
                     # change study name to search for a new horizon
                     tentatives += 1
                     study_name = f"{model_name}_{cfg.dataset.name}_{cfg.dataset.group}_{horizon + tentatives}"
-                    if model_name.lower() == "nbeatsstackmoe":
-                        study_name = study_name.replace("stackmoe", "")
 
             if tentatives == 10:
                 print("Error: There is no study available")
@@ -167,7 +163,7 @@ def main(cfg: DictConfig):
             print(median.round(4))
 
             # Save results to a CSV file with the specified columns
-            save_results_summary(model_name, cfg.dataset, horizon, std_dev, median, results_file="C:\\Users\\ricar\\mixture_of_experts_time_series\\results_summary.csv")
+            save_results_summary(model_name, cfg.dataset, horizon, std_dev, median, results_file="C:\\Users\\ricar\\mixture_of_experts_time_series\\results_summary_100_trials.csv")
 
 if __name__ == "__main__":
     main()

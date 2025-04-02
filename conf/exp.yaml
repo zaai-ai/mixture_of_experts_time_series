@@ -1,13 +1,13 @@
 version_base: 1.1
 
 model:
-  name:  ["nbeats"] # ["nbeats"] # ["nbeats"] # "nbeatsmoe",
+  name:   ["nbeatsstackmoe"] # ["nbeats"] # ["nbeats"] # "nbeatsmoe",
 horizon: [2] # [12, 18, 24] #  [4, 6] #, 12, 18, 24]
 
 all: False
 
 dataset:
-  name: "m3"
+  name: "gluonts_m1_yearly"
   directory: "C:\\Users\\ricar\\mixture_of_experts_time_series\\data\\m3\\"
   group: "Yearly"
   freq: "Y"
