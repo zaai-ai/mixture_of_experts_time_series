@@ -41,7 +41,7 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
 
         return AutoNBEATSMoE(
             h=horizon, 
-            num_samples=20,
+            num_samples=80,
             config=config,
             backend="optuna",
             optuna_kargs={
@@ -68,7 +68,7 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
         return AutoNBEATS(
             h=horizon, 
             config=BaseAuto._ray_config_to_optuna(config),
-            num_samples=20,
+            num_samples=80,
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,
@@ -94,7 +94,7 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
         return AutoNBEATS(
             h=horizon, 
             config=BaseAuto._ray_config_to_optuna(config),
-            num_samples=20,
+            num_samples=80,
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,
