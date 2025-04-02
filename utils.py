@@ -465,7 +465,7 @@ def get_instance(
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
             callbacks=[prob_collector],
-            return_gate_logits=False,
+            return_gate_logits=True,
             enable_checkpointing=True,
             val_check_steps=val_check_steps,
             # scaler_type='standard',

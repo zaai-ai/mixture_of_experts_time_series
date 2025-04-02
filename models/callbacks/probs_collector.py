@@ -9,10 +9,12 @@ class GateValuesCollectorCallback(Callback):
     A PyTorch Lightning callback to collect gate values from model outputs
     during prediction.
     """
-    def __init__(self, top_k : int = 1) -> None:
+    def __init__(self, top_k : int = 2, layer_to_check: int = 0) -> None:
         super().__init__()
         self._gate_values: List[np.ndarray] = []
+
         self.top_k = top_k
+        self.layer_to_check = layer_to_check
 
     def on_predict_batch_end(self,
         trainer: "pl.Trainer",
@@ -30,11 +32,30 @@ class GateValuesCollectorCallback(Callback):
             batch_idx (int): Index of the batch.
             dataloader_idx (int, optional): Index of the dataloader (default: 0).
         """
-        print(f"outputs: {outputs}")
-        # if isinstance(outputs, dict) and 'gate_values' in outputs:
-        #     gate_values = outputs['gate_values']
-        #     if isinstance(gate_values, torch.Tensor):
-        #         self._gate_values.append(gate_values.detach().cpu().numpy())
+        all_gate_values = pl_module.all_gate_logits
+
+        print(f"length of all_gate_values: {len(all_gate_values)}")
+        print(f"all_gate_values: {all_gate_values[0]}")
+        print(f"all_gate_values: {len(all_gate_values[0])}")
+
+
+        all_gate_values = all_gate_values[0][self.layer_to_check]
+
+        top_k_gate_values, topk_indices = torch.topk(all_gate_values, self.top_k, dim=1)
+
+        # put all values in the list and set the top k probs to selected values
+        all_gate_values = torch.zeros_like(all_gate_values)
+
+        top_k_probs = torch.softmax(top_k_gate_values, dim=1)
+
+        all_gate_values.scatter_(1, topk_indices, top_k_probs)
+
+        all_gate_values = all_gate_values.detach().cpu().numpy()
+
+        self._gate_values.append(all_gate_values)
+
+        print(f"top_k_gate_values: {all_gate_values}")
+
 
     def get_collected_gate_values(self) -> List[np.ndarray]:
         """

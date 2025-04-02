@@ -130,7 +130,7 @@ data:
   gluonts_tourism_monthly:
     group: "Monthly"
     freq: "M"
-    horizons: [12]
+    horizons: [18]
 plot:
   default_plot:
     figsize: [20, 7]
