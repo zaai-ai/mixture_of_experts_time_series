@@ -37,6 +37,7 @@ from models.callbacks.gate_distribution import GateDistributionCallback
 from models.callbacks.series_distribution import SeriesDistributionCallback
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from models.callbacks.series_similarity import SeriesSimilarityCallback
+from models.callbacks.probs_collector import GateValuesCollectorCallback
 
 
 
@@ -451,6 +452,7 @@ def get_instance(
         params.early_stop_patience_steps, config_idx)
         batch_size_val = get_config_value(params.batch_size, config_idx)
         val_check_steps = get_config_value(params.val_check_steps, config_idx)
+        prob_collector = GateValuesCollectorCallback()
 
         num_training_steps = 10000
 
@@ -462,7 +464,8 @@ def get_instance(
             valid_loss=eval(loss_str)(),
             early_stop_patience_steps=early_stop,
             batch_size=batch_size_val,
-            # callbacks=[checkpoint_callback],
+            callbacks=[prob_collector],
+            return_gate_logits=False,
             enable_checkpointing=True,
             val_check_steps=val_check_steps,
             # scaler_type='standard',
