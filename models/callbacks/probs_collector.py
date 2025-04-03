@@ -1,67 +1,95 @@
-from typing import List, Any
-import numpy as np
+import numpy as np 
 import torch
-from pytorch_lightning.callbacks import Callback
+import pytorch_lightning as pl
+import matplotlib.pyplot as plt
+from tsfeatures import tsfeatures  # Requires tsfeatures package
+import pandas as pd
 
 
-class GateValuesCollectorCallback(Callback):
+class GateValuesCollectorCallback(pl.Callback):
     """
-    A PyTorch Lightning callback to collect gate values from model outputs
-    during prediction.
+    A PyTorch Lightning callback to collect gate values per epoch
+    and analyze expert specialization in a mixture-of-experts model.
     """
-    def __init__(self, top_k : int = 2, layer_to_check: int = 0) -> None:
+    def __init__(self, top_k: int = 2, nr_layers: int = 3) -> None:
         super().__init__()
-        self._gate_values: List[np.ndarray] = []
-
+        self._gate_values = []  # Stores gate values for all layers
         self.top_k = top_k
-        self.layer_to_check = layer_to_check
+        self.nr_layers = nr_layers  # Number of layers to track
 
-    def on_predict_batch_end(self,
-        trainer: "pl.Trainer",
-        pl_module: "pl.LightningModule",
-        outputs: Any,
-        batch: Any,
-        batch_idx: int,
-        dataloader_idx: int = 0,) -> None:
+    def on_predict_epoch_end(self, trainer, pl_module):
         """
-        Called when a batch ends during prediction. Collects gate values if they exist in the model's output.
+        Called at the end of each epoch during training.
+        Collects and processes gate values from all layers.
+        """
+        all_gate_values = pl_module.all_gate_logits  # Assuming this exists
+
+        if not all_gate_values or len(all_gate_values[0]) < self.nr_layers:
+            print("Not enough layers in all_gate_logits.")
+            return
+
+        epoch_gate_values = []  # Collect values per layer
         
-        Args:
-            outputs (Any): Model outputs from the batch.
-            batch (Any): Input batch data (not used in this callback but required by Lightning API).
-            batch_idx (int): Index of the batch.
-            dataloader_idx (int, optional): Index of the dataloader (default: 0).
-        """
-        all_gate_values = pl_module.all_gate_logits
+        for layer_idx in range(self.nr_layers):
+            gate_values = all_gate_values[0][layer_idx]  # Extract for this layer
 
-        print(f"length of all_gate_values: {len(all_gate_values)}")
-        print(f"all_gate_values: {all_gate_values[0]}")
-        print(f"all_gate_values: {len(all_gate_values[0])}")
+            # Extract top-k experts per sample
+            top_k_gate_values, topk_indices = torch.topk(gate_values, self.top_k, dim=1)
+            layer_gate_values = torch.zeros_like(gate_values)
+            top_k_probs = torch.softmax(top_k_gate_values, dim=1)
+            layer_gate_values.scatter_(1, topk_indices, top_k_probs)
 
-
-        all_gate_values = all_gate_values[0][self.layer_to_check]
-
-        top_k_gate_values, topk_indices = torch.topk(all_gate_values, self.top_k, dim=1)
-
-        # put all values in the list and set the top k probs to selected values
-        all_gate_values = torch.zeros_like(all_gate_values)
-
-        top_k_probs = torch.softmax(top_k_gate_values, dim=1)
-
-        all_gate_values.scatter_(1, topk_indices, top_k_probs)
-
-        all_gate_values = all_gate_values.detach().cpu().numpy()
-
-        self._gate_values.append(all_gate_values)
-
-        print(f"top_k_gate_values: {all_gate_values}")
-
-
-    def get_collected_gate_values(self) -> List[np.ndarray]:
-        """
-        Returns the collected gate values.
+            epoch_gate_values.append(layer_gate_values.detach().cpu().numpy())
         
-        Returns:
-            List[np.ndarray]: A list of collected gate values as NumPy arrays.
+        self._gate_values.append(np.array(epoch_gate_values))  # Store per epoch
+        self.plot_expert_density()
+
+    def plot_expert_density(self):
         """
-        return self._gate_values
+        Plots a heatmap of expert selection probability per layer.
+        """
+        if not self._gate_values:
+            print("No data collected yet.")
+            return
+
+        # Aggregate across epochs and batch
+        all_values = np.mean(np.concatenate(self._gate_values, axis=1), axis=1)  # (layers, experts)
+        
+        plt.figure(figsize=(10, 6))
+        plt.imshow(all_values, aspect='auto', cmap='Blues', interpolation='none')
+        plt.colorbar(label="Average Probability")
+        plt.xlabel("Experts")
+        plt.ylabel("Layers")
+        plt.title("Gating Scores for Experts Across Layers")
+        plt.xticks(np.arange(all_values.shape[1]))
+        plt.yticks(np.arange(all_values.shape[0]))
+        plt.show()
+
+    def analyze_expert_specialization(self, time_series_data: pd.DataFrame):
+        """
+        Analyzes expert specialization based on time series characteristics.
+        """
+        if not self._gate_values:
+            print("No data collected yet.")
+            return
+
+        # Compute TS Features
+        features = tsfeatures(time_series_data["series"])
+        features = pd.DataFrame(features)
+
+        # Get average gate values per series
+        avg_gate_values = np.mean(self._gate_values[-1], axis=1)  # Avg over batch
+
+        # Correlate with time series features
+        correlation = pd.DataFrame(avg_gate_values).corrwith(features)
+
+        print("Correlation between expert selection and time series features:")
+        print(correlation)
+
+        # Scatter plot: Trend vs Expert Selection
+        plt.figure(figsize=(6, 4))
+        plt.scatter(features["trend"], avg_gate_values, alpha=0.6)
+        plt.xlabel("Trend Strength")
+        plt.ylabel("Expert Selection Probability")
+        plt.title("Expert Specialization vs Trend")
+        plt.show()

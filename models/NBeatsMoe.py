@@ -300,7 +300,7 @@ class NBeatsMoe(BaseWindows):
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
-        nr_experts: int = 4,
+        nr_experts: int = 8,
         top_k: int = 2,
         return_gate_logits: bool = False,
         drop_last_loader: bool = False,
@@ -368,6 +368,7 @@ class NBeatsMoe(BaseWindows):
             n_harmonics=n_harmonics,
         )
         self.blocks = torch.nn.ModuleList(blocks)
+        self.all_gate_logits = []
     
     # def training_step(self, batch, batch_idx):
     #     self.training = True
@@ -392,7 +393,6 @@ class NBeatsMoe(BaseWindows):
         n_batches = int(np.ceil(n_windows / windows_batch_size))
 
         y_hats = []
-        all_gate_logits = []
         for i in range(n_batches):
             # Create and normalize windows [Ws, L+H, C]
             w_idxs = np.arange(
@@ -417,7 +417,7 @@ class NBeatsMoe(BaseWindows):
             # Model Predictions
             if self.return_gate_logits:
                 output_batch, gate_logits, insample_y = self(windows_batch)
-                all_gate_logits.append(gate_logits)
+                self.all_gate_logits.append(gate_logits)
             else:
                 output_batch = self(windows_batch)
             # Inverse normalization and sampling
@@ -451,7 +451,6 @@ class NBeatsMoe(BaseWindows):
                 )
             y_hats.append(y_hat)
         y_hat = torch.cat(y_hats, dim=0)
-        self.all_gate_logits = all_gate_logits
         return y_hat
 
     def create_stack(
