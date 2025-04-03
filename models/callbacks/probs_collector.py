@@ -23,30 +23,35 @@ class GateValuesCollectorCallback(pl.Callback):
         Collects and processes gate values from all layers.
         """
         all_gate_values = pl_module.all_gate_logits  # Assuming this exists
+        all_inputs = pl_module.all_inputs  # Assuming this exists
 
         if not all_gate_values or len(all_gate_values[0]) < self.nr_layers:
             print("Not enough layers in all_gate_logits.")
             return
 
         epoch_gate_values = []  # Collect values per layer
-        
+        epoch_inputs = []  # Collect inputs per layer
         for layer_idx in range(self.nr_layers):
-            gate_values = all_gate_values[0][layer_idx]  # Extract for this layer
+            gate_values = all_gate_values[layer_idx]  # Extract for this layer
+
+            # Concatenate gate values across all batches in the list
+            gate_concated_values = torch.cat(gate_values, dim=0)  # (all_test_points, num_experts)
 
             # Extract top-k experts per sample
-            top_k_gate_values, topk_indices = torch.topk(gate_values, self.top_k, dim=1)
-            layer_gate_values = torch.zeros_like(gate_values)
+            top_k_gate_values, topk_indices = torch.topk(gate_concated_values, self.top_k, dim=1)
+            layer_gate_values = torch.zeros_like(gate_concated_values)
             top_k_probs = torch.softmax(top_k_gate_values, dim=1)
             layer_gate_values.scatter_(1, topk_indices, top_k_probs)
 
             epoch_gate_values.append(layer_gate_values.detach().cpu().numpy())
+            epoch_inputs.append(all_inputs[layer_idx].detach().cpu().numpy())
         
         self._gate_values.append(np.array(epoch_gate_values))  # Store per epoch
         self.plot_expert_density()
 
         ## save the gate values to a file
-        gate_values_df = pd.DataFrame(np.concatenate(self._gate_values, axis=1))
-        gate_values_df.to_csv("gate_values.csv", index=False)
+        np.save(f"gate_values_epoch_{trainer.current_epoch}.npy", np.array(epoch_gate_values))
+        np.save(f"all_inputs_epoch_{trainer.current_epoch}.npy", np.array(epoch_inputs))
 
     def plot_expert_density(self):
         """

@@ -155,8 +155,8 @@ class NBEATSBlock(nn.Module):
         basis: nn.Module,
         dropout_prob: float,
         activation: str,
-        nr_experts: int = 4,
-        top_k: int = 1,
+        nr_experts: int = 8,
+        top_k: int = 2,
         return_gate_logits: bool = False,
     ):
         """ """
@@ -299,11 +299,12 @@ class NBeatsMoe(BaseWindows):
         start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
-        random_seed: int = 1,
+        random_seed: int = 2,
         nr_experts: int = 8,
-        top_k: int = 4,
+        top_k: int = 2,
         return_gate_logits: bool = False,
         drop_last_loader: bool = False,
+        store_all_gate_logits: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -353,6 +354,7 @@ class NBeatsMoe(BaseWindows):
         self.top_k = top_k 
         self.return_gate_logits = return_gate_logits
         self._training = True
+        self.store_all_gate_logits = store_all_gate_logits
 
         # Architecture
         blocks = self.create_stack(
@@ -368,90 +370,12 @@ class NBeatsMoe(BaseWindows):
             n_harmonics=n_harmonics,
         )
         self.blocks = torch.nn.ModuleList(blocks)
-        self.all_gate_logits = []
-    
-    # def training_step(self, batch, batch_idx):
-    #     self.training = True
-    #     super().training_step(batch, batch_idx)
+        self.all_gate_logits = [[] for _ in range(len(blocks))]
+        self.all_inputs = []
 
-    # def validation_step(self, batch, batch_idx):
-    #     self.training = True
-    #     super().validation_step(batch, batch_idx)
-    
     def predict_step(self, batch, batch_idx):
         self._training = False
-
-        # TODO: Hack to compute number of windows
-        windows = self._create_windows(batch, step="predict")
-        n_windows = len(windows["temporal"])
-        y_idx = batch["y_idx"]
-
-        # Number of windows in batch
-        windows_batch_size = self.inference_windows_batch_size
-        if windows_batch_size < 0:
-            windows_batch_size = n_windows
-        n_batches = int(np.ceil(n_windows / windows_batch_size))
-
-        y_hats = []
-        for i in range(n_batches):
-            # Create and normalize windows [Ws, L+H, C]
-            w_idxs = np.arange(
-                i * windows_batch_size, min((i + 1) * windows_batch_size, n_windows)
-            )
-            windows = self._create_windows(batch, step="predict", w_idxs=w_idxs)
-            windows = self._normalization(windows=windows, y_idx=y_idx)
-
-            # Parse windows
-            insample_y, insample_mask, _, _, hist_exog, futr_exog, stat_exog = (
-                self._parse_windows(batch, windows)
-            )
-
-            windows_batch = dict(
-                insample_y=insample_y,  # [Ws, L]
-                insample_mask=insample_mask,  # [Ws, L]
-                futr_exog=futr_exog,  # [Ws, L + h, F]
-                hist_exog=hist_exog,  # [Ws, L, X]
-                stat_exog=stat_exog,
-            )  # [Ws, S]
-
-            # Model Predictions
-            if self.return_gate_logits:
-                output_batch, gate_logits, insample_y = self(windows_batch)
-                self.all_gate_logits.append(gate_logits)
-            else:
-                output_batch = self(windows_batch)
-            # Inverse normalization and sampling
-            if self.loss.is_distribution_output:
-                _, y_loc, y_scale = self._inv_normalization(
-                    y_hat=torch.empty(
-                        size=(insample_y.shape[0], self.h),
-                        dtype=output_batch[0].dtype,
-                        device=output_batch[0].device,
-                    ),
-                    temporal_cols=batch["temporal_cols"],
-                    y_idx=y_idx,
-                )
-                distr_args = self.loss.scale_decouple(
-                    output=output_batch, loc=y_loc, scale=y_scale
-                )
-                _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
-                y_hat = torch.concat((sample_mean, quants), axis=2)
-
-                if self.loss.return_params:
-                    distr_args = torch.stack(distr_args, dim=-1)
-                    distr_args = torch.reshape(
-                        distr_args, (len(windows["temporal"]), self.h, -1)
-                    )
-                    y_hat = torch.concat((y_hat, distr_args), axis=2)
-            else:
-                y_hat, _, _ = self._inv_normalization(
-                    y_hat=output_batch,
-                    temporal_cols=batch["temporal_cols"],
-                    y_idx=y_idx,
-                )
-            y_hats.append(y_hat)
-        y_hat = torch.cat(y_hats, dim=0)
-        return y_hat
+        return super().predict_step(batch, batch_idx)
 
     def create_stack(
         self,
@@ -538,11 +462,12 @@ class NBeatsMoe(BaseWindows):
 
         forecast = insample_y[:, -1:, None]  # Level with Naive1
         block_forecasts = [forecast.repeat(1, self.h, 1)]
-        all_gate_logits = []
         for i, block in enumerate(self.blocks):
             if self.return_gate_logits:
                 backcast, block_forecast, gate_logits = block(insample_y=residuals)
-                all_gate_logits.append(gate_logits)
+                if not self._training or self.store_all_gate_logits:
+                    self.all_gate_logits[i].append(gate_logits)
+                    self.all_inputs.append(residuals)
             else:
                 backcast, block_forecast = block(insample_y=residuals)
             residuals = (residuals - backcast) * insample_mask
@@ -560,7 +485,5 @@ class NBeatsMoe(BaseWindows):
             block_forecasts = block_forecasts.permute(1, 0, 2, 3)
             block_forecasts = block_forecasts.squeeze(-1)  # univariate output
             return block_forecasts
-        elif self.return_gate_logits and not self._training:
-            return forecast, all_gate_logits, insample_y
         else:
             return forecast
