@@ -44,6 +44,10 @@ class GateValuesCollectorCallback(pl.Callback):
         self._gate_values.append(np.array(epoch_gate_values))  # Store per epoch
         self.plot_expert_density()
 
+        ## save the gate values to a file
+        gate_values_df = pd.DataFrame(np.concatenate(self._gate_values, axis=1))
+        gate_values_df.to_csv("gate_values.csv", index=False)
+
     def plot_expert_density(self):
         """
         Plots a heatmap of expert selection probability per layer.

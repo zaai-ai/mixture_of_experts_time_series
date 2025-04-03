@@ -138,6 +138,8 @@ def get_instance(
         dirpath="checkpoints/",
     )
 
+    callbacks = []
+
     # Initialize model instance based on model_name.
     if model_name.lower() == "simplemoe":
         input_size_val = get_config_value(params.input_size, config_idx)
@@ -470,6 +472,8 @@ def get_instance(
             val_check_steps=val_check_steps,
             # scaler_type='standard',
         )
+
+        callbacks.append(prob_collector)
     elif model_name.lower() == "nbeatsstackmoe":
         input_size_val = get_config_value(params.input_size, config_idx)
         loss_str = get_config_value(params.loss, config_idx)
@@ -496,5 +500,5 @@ def get_instance(
         )
     else:
         raise NotImplementedError(f"Model '{model_name}' is not implemented.")  
-    return model_instance, checkpoint_callback
+    return model_instance, callbacks
 

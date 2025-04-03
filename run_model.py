@@ -60,20 +60,16 @@ def run_model_experiment(
     """
 
     # Initialize model instance based on model_name.
-    model_instance, checkpoint_callback = get_instance(
+    model_instance, callbacks = get_instance(
         model_name, model_config, horizon, config_idx, training_df=Y_train_df)
 
     # Instantiate NeuralForecast and run forecast.
     fcst = NeuralForecast(models=[model_instance], freq=freq)
     fcst.fit(df=Y_train_df, static_df=None, val_size=horizon)
     
-    # fcst = SimpleMoe.load_from_checkpoint(checkpoint_callback.best_model_path + 'checkpoints/best_model.ckpt')
-    # fcst = NeuralForecast(models=[fcstModel], freq=freq)
     forecasts = fcst.predict(futr_df=Y_test_df)
 
     
-    # plot the training loss and validation loss
-    # plot_history(..., model_name)
 
     # Extract forecast column (assumes column is named after model class)
     forecast_col = model_instance.__class__.__name__
@@ -86,7 +82,7 @@ def run_model_experiment(
     # Evaluate sMAPE.
     current_smape = calculate_smape(Y_test_df, Y_hat_df, forecast_col)
 
-    return current_smape, forecasts, model_instance
+    return current_smape, forecasts, model_instance, callbacks
 
 
 def plot_mean_smape(horizons, results, dataset_name: str):
@@ -185,6 +181,8 @@ def run_exp(cfg: DictConfig):
 
         horizons = dataset_cfg.horizons
 
+        callbacks_list = []
+
         # Loop over each forecast horizon.
         for horizon in horizons:
             print(f"\n--- Evaluating for horizon: {horizon} ---")
@@ -204,7 +202,7 @@ def run_exp(cfg: DictConfig):
                 i = horizons.index(horizon)
 
                 try:
-                    current_smape, forecasts, model_instance = run_model_experiment(
+                    current_smape, forecasts, model_instance, callbacks = run_model_experiment(
                         model_name,
                         model_config,
                         Y_train_df,
@@ -213,6 +211,7 @@ def run_exp(cfg: DictConfig):
                         dataset_cfg.freq,
                         config_idx=i
                     )
+                    callbacks_list.append(callbacks)
                     print(
                         f"Model '{model_name}' config {i}: sMAPE = {current_smape:.3f}")
                     smape_list.append(current_smape)
@@ -249,7 +248,7 @@ def run_exp(cfg: DictConfig):
         # Plot mean sMAPE vs. horizons.
         plot_mean_smape(horizons, results, dataset_name)
 
-        return results, forecasts
+        return results, forecasts, callbacks_list
 
 
 
