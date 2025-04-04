@@ -36,6 +36,7 @@ class GateValuesCollectorCallback(pl.Callback):
 
             # Concatenate gate values across all batches in the list
             gate_concated_values = torch.cat(gate_values, dim=0)  # (all_test_points, num_experts)
+            all_concated_inputs = torch.cat(all_inputs[layer_idx], dim=0)  # (all_test_points, num_features)
 
             # Extract top-k experts per sample
             top_k_gate_values, topk_indices = torch.topk(gate_concated_values, self.top_k, dim=1)
@@ -44,7 +45,7 @@ class GateValuesCollectorCallback(pl.Callback):
             layer_gate_values.scatter_(1, topk_indices, top_k_probs)
 
             epoch_gate_values.append(layer_gate_values.detach().cpu().numpy())
-            epoch_inputs.append(all_inputs[layer_idx].detach().cpu().numpy())
+            epoch_inputs.append(all_concated_inputs.detach().cpu().numpy())
         
         self._gate_values.append(np.array(epoch_gate_values))  # Store per epoch
         self.plot_expert_density()

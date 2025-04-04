@@ -299,7 +299,7 @@ class NBeatsMoe(BaseWindows):
         start_padding_enabled=False,
         step_size: int = 1,
         scaler_type: str = "identity",
-        random_seed: int = 2,
+        random_seed: int = 1,
         nr_experts: int = 8,
         top_k: int = 2,
         return_gate_logits: bool = False,
@@ -371,7 +371,7 @@ class NBeatsMoe(BaseWindows):
         )
         self.blocks = torch.nn.ModuleList(blocks)
         self.all_gate_logits = [[] for _ in range(len(blocks))]
-        self.all_inputs = []
+        self.all_inputs = [[] for _ in range(len(blocks))]
 
     def predict_step(self, batch, batch_idx):
         self._training = False
@@ -467,7 +467,7 @@ class NBeatsMoe(BaseWindows):
                 backcast, block_forecast, gate_logits = block(insample_y=residuals)
                 if not self._training or self.store_all_gate_logits:
                     self.all_gate_logits[i].append(gate_logits)
-                    self.all_inputs.append(residuals)
+                    self.all_inputs[i].append(residuals)
             else:
                 backcast, block_forecast = block(insample_y=residuals)
             residuals = (residuals - backcast) * insample_mask
