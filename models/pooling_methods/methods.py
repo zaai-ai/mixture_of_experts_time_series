@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import List, Optional
 
-__ALL__ = ["BasePooling", "DensePooling", "SparsePooling", "SoftPooling"]
+__ALL__ = ["BasePooling", "DensePooling", "SparsePooling", "SoftPooling", "SharedExpertPooling"]
 
 ###############################################################################
 # Base Pooling Module
@@ -97,7 +97,7 @@ class SparsePooling(BasePooling):
         device: Optional[torch.device] = None,
         unpack: bool = True,
         return_soft_gates: bool = False,
-        bias: bool = True
+        bias: bool = False
     ) -> None:
         """
         Args:
@@ -168,6 +168,78 @@ class SparsePooling(BasePooling):
             return weighted_sum, gate_logits
 
         return weighted_sum
+
+################################################################################
+# Shared Expert Pooling
+################################################################################
+class SharedExpertPooling(BasePooling):
+    """
+    Uses one shared expert and sparse pooling for the others
+    """
+    def __init__(
+        self,
+        experts: List[nn.Module],
+        shared_expert: nn.Module,
+        gate: nn.Module,
+        sparse_gate: nn.Module,
+        out_features: int,
+        k: int = 3,
+        device: Optional[torch.device] = None,
+        unpack: bool = True,
+        return_soft_gates: bool = False,
+        bias: bool = False
+    ) -> None:
+        """
+        Args:
+            experts (List[nn.Module]): List of expert models.
+            gate (nn.Module): Gating network that computes the weights.
+            out_features (int): The number of output features.
+            k (int, optional): The number of top experts to select. Defaults to 1.
+            device (Optional[torch.device], optional): Device to run on. Defaults to CPU.
+        """
+        super(SharedExpertPooling, self).__init__(experts, gate, out_features, device, unpack, return_soft_gates)
+        self.k: int = k
+
+        self.bias: nn.Parameter = nn.Parameter(torch.empty(len(experts))) if bias else None
+
+        self.shared_expert: nn.Module = shared_expert
+        self.sparse_pooling = SparsePooling(
+            experts=experts,
+            gate=sparse_gate,
+            out_features=out_features,
+            k=k,
+            unpack=unpack,
+            return_soft_gates=return_soft_gates,
+            bias=bias
+        )
+
+    def forward(self, windows_batch: dict) -> torch.Tensor:
+        
+        if self.unpack: insample_y = windows_batch['insample_y']
+        else: insample_y = windows_batch
+
+        gate_logits: torch.Tensor = self.gate(insample_y)
+
+        gate_probs: torch.Tensor = self.softmax(gate_logits)
+
+
+        # Initialize the weighted sum output.
+        weighted_sum = torch.zeros(
+            insample_y.size(0), self.out_features, device=insample_y.device
+        )
+
+        # Compute the shared expert output.
+        shared_expert_output = self.shared_expert(windows_batch)
+        # Add the shared expert output to the weighted sum.
+        weighted_sum += shared_expert_output * gate_probs[:, 0].unsqueeze(1)
+        
+        # Compute the sparse pooling output.
+        sparse_pooling_output, sparse_gate_probs = self.sparse_pooling(windows_batch)
+        # Add the sparse pooling output to the weighted sum.
+        weighted_sum += sparse_pooling_output * gate_probs[:, 1].unsqueeze(1)
+
+        return weighted_sum, sparse_gate_probs
+
 
 ###############################################################################
 # Soft Pooling

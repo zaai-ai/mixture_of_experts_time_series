@@ -19,17 +19,18 @@ class AutoNBEATSMoE(BaseAuto):
         "h": None,
         # "stack_types": tune.choice([["identity", "trend", "seasonality"], ["identity", "trend"]]),
         "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(8)]),
-        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        # "learning_rate": tune.loguniform(1e-4, 1e-1),
+        "n_blocks": tune.choice([3 * [x] for x in [1, 3, 6, 9]]),
         "scaler_type": tune.choice(["identity"]),
-        "max_steps": tune.choice([1000, 2500, 5000]),
+        "shared_weights": tune.choice([True]),
+        "max_steps": tune.choice([1000, 2500, 5000, 10000]),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "random_seed": tune.randint(1, 20),
         "nr_experts": tune.choice([pow(2,x) for x in range(1, 4)]),
         "top_k": tune.choice([pow(2,x) for x in range(0, 4)]),
-        "early_stop_patience_steps": tune.choice([5, 10, 20]),
+        "early_stop_patience_steps": tune.choice([10, 20]),
         "start_padding_enabled": tune.choice([True]),
-
     }
 
     def __init__(
@@ -41,6 +42,7 @@ class AutoNBEATSMoE(BaseAuto):
         search_alg=BasicVariantGenerator(random_state=1),
         num_samples=10,
         refit_with_val=False,
+        shared_expert=False,
         cpus=cpu_count(),
         gpus=torch.cuda.device_count(),
         verbose=False,
@@ -52,7 +54,7 @@ class AutoNBEATSMoE(BaseAuto):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.get_default_config(h=h, backend=backend)
+            config = self.get_default_config(h=h, backend=backend, shared_expert=shared_expert)
 
         super(AutoNBEATSMoE, self).__init__(
             cls_model=NBeatsMoe,
@@ -72,8 +74,10 @@ class AutoNBEATSMoE(BaseAuto):
             optuna_kargs=optuna_kargs,
         )
 
+        self.shared_expert = shared_expert
+
     @classmethod
-    def get_default_config(cls, h, backend, n_series=None):
+    def get_default_config(cls, h, backend, n_series=None, shared_expert=False):
 
         # def config_with_correct_top_k(trial):
         #     conf = config(trial)
@@ -86,6 +90,10 @@ class AutoNBEATSMoE(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
+
+        if shared_expert:
+            config["shared_expert"] = tune.choice([True])
+
         config["step_size"] = tune.choice([1, h])
         del config["input_size_multiplier"]
         if backend == "optuna":

@@ -17,6 +17,7 @@ from models.auto.AutoInformerMoe import AutoInformerMoe
 from models.auto.AutoMlpMoe import AutoMLPMoe
 from neuralforecast.auto import AutoNBEATS, AutoVanillaTransformer, AutoMLP
 
+STORAGE = "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study_nbeats_blcs.db"
 
 def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
     if name.lower() == "nbeatsmoe":
@@ -26,27 +27,64 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
                 "h": None,
                 "input_size": tune.choice([n_lags]),
                 "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(8)]),
-                "learning_rate": tune.loguniform(1e-4, 1e-1),
-                "scaler_type": tune.choice(["identity", "minmax", "robust", "standard"]),
-                "max_steps": tune.choice([1000, 2500, 5000]),
+                # "learning_rate": tune.loguniform(1e-4, 1e-1),
+                "n_blocks": tune.choice([3 * [x] for x in [1, 3, 6, 9]]),
+                "scaler_type": tune.choice(["identity"]),
+                "shared_weights": tune.choice([True]),
+                "max_steps": tune.choice([1000, 2500, 5000, 10000]),
                 "batch_size": tune.choice([32, 64, 128, 256]),
                 "windows_batch_size": tune.choice([128, 256, 512, 1024]),
                 "random_seed": tune.randint(1, 20),
                 "nr_experts": tune.choice([pow(2,x) for x in range(1, 4)]),
                 "top_k": tune.choice([pow(2,x) for x in range(0, 4)]),
-                "early_stop_patience_steps": tune.choice([5, 10, 20]),
+                "early_stop_patience_steps": tune.choice([10, 20]),
                 "start_padding_enabled": tune.choice([True]),
             }
             config = BaseAuto._ray_config_to_optuna(config)
 
         return AutoNBEATSMoE(
             h=horizon, 
-            num_samples=80,
+            num_samples=20,
             config=config,
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,
-            "storage": "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
+            "storage": STORAGE,
+            "load_if_exists": True
+            }
+        )
+    if name.lower() == "nbeatsmoeshared":
+        config = None
+        if n_lags:
+            config = {
+                "h": None,
+                "input_size": tune.choice([n_lags]),
+                "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(8)]),
+                # "learning_rate": tune.loguniform(1e-4, 1e-1),
+                "n_blocks": tune.choice([3 * [x] for x in [1, 3, 6, 9]]),
+                "share_experts": tune.choice([True]),
+                "shared_weights": tune.choice([True]),
+                "scaler_type": tune.choice(["identity"]),       
+                "max_steps": tune.choice([1000, 2500, 5000, 10000]),
+                "batch_size": tune.choice([32, 64, 128, 256]),
+                "windows_batch_size": tune.choice([128, 256, 512, 1024]),
+                "random_seed": tune.randint(1, 20),
+                "nr_experts": tune.choice([pow(2,x) for x in range(1, 4)]),
+                "top_k": tune.choice([pow(2,x) for x in range(0, 4)]),
+                "early_stop_patience_steps": tune.choice([10, 20]),
+                "start_padding_enabled": tune.choice([True]),
+            }
+            config = BaseAuto._ray_config_to_optuna(config)
+
+        return AutoNBEATSMoE(
+            h=horizon, 
+            num_samples=20,
+            config=config,
+            backend="optuna",
+            shared_expert=True,
+            optuna_kargs={
+            "study_name": study_name,
+            "storage": STORAGE,
             "load_if_exists": True
             }
         )
@@ -55,24 +93,26 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
             "input_size": tune.choice([n_lags]) if n_lags else tune.choice([horizon * x for x in [1, 2, 3, 4, 5]]),
             # "stack_types": tune.choice([["identity", "trend", "seasonality"], ["identity", "trend"]]),
             "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(9)]),
-            "learning_rate": tune.loguniform(1e-4, 1e-1),
-            "scaler_type": tune.choice(["identity", "minmax", "robust", "standard"]),
-            "max_steps": tune.choice([1000, 2500, 5000]),
+            # "learning_rate": tune.loguniform(1e-4, 1e-1),
+            "scaler_type": tune.choice(["identity"]),
+            "max_steps": tune.choice([1000, 2500, 5000, 10000]),
+            "shared_weights": tune.choice([True]),
+            "n_blocks": tune.choice([3 * [x] for x in [1, 3, 6, 9]]),
             "batch_size": tune.choice([32, 64, 128, 256]),
             "windows_batch_size": tune.choice([128, 256, 512, 1024]),
             "random_seed": tune.randint(1, 20),
-            "early_stop_patience_steps": tune.choice([5, 10, 20]),
+            "early_stop_patience_steps": tune.choice([10, 20]),
             "start_padding_enabled": tune.choice([True]),
         }
 
         return AutoNBEATS(
             h=horizon, 
             config=BaseAuto._ray_config_to_optuna(config),
-            num_samples=80,
+            num_samples=20,
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,
-            "storage": "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
+            "storage": STORAGE,
             "load_if_exists": True
             }
         )
@@ -81,24 +121,26 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
             "input_size": tune.choice([n_lags]) if n_lags else tune.choice([horizon * x for x in [1, 2, 3, 4, 5]]),
             # "stack_types": tune.choice([["identity", "trend", "seasonality"], ["identity", "trend"]]),
             "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(9)]),
-            "learning_rate": tune.loguniform(1e-4, 1e-1),
-            "scaler_type": tune.choice(["identity", "minmax", "robust", "standard"]),
-            "max_steps": tune.choice([1000, 2500, 5000]),
+            # "learning_rate": tune.loguniform(1e-4, 1e-1),
+            "n_blocks": tune.choice([3 * [x] for x in [1, 3, 6, 9]]),
+            "shared_weights": tune.choice([True]),
+            "scaler_type": tune.choice(["identity"]),
+            "max_steps": tune.choice([1000, 2500, 5000, 10000]),
             "batch_size": tune.choice([32, 64, 128, 256]),
             "windows_batch_size": tune.choice([128, 256, 512, 1024]),
             "random_seed": tune.randint(1, 20),
-            "early_stop_patience_steps": tune.choice([5, 10, 20]),
+            "early_stop_patience_steps": tune.choice([10, 20]),
             "start_padding_enabled": tune.choice([True]),
         }
 
         return AutoNBEATS(
             h=horizon, 
             config=BaseAuto._ray_config_to_optuna(config),
-            num_samples=80,
+            num_samples=20,
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,
-            "storage": "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
+            "storage": STORAGE,
             "load_if_exists": True
             }
         )
@@ -109,7 +151,7 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,
-            "storage": "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
+            "storage": STORAGE,
             "load_if_exists": True
             }
         )
@@ -120,7 +162,7 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,
-            "storage": "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
+            "storage": STORAGE,
             "load_if_exists": True
             }
         )
@@ -131,7 +173,7 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,
-            "storage": "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
+            "storage": STORAGE,
             "load_if_exists": True
             }
         )
@@ -142,7 +184,7 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
             backend="optuna",
             optuna_kargs={
             "study_name": study_name,
-            "storage": "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
+            "storage": STORAGE,
             "load_if_exists": True
             }
         )

@@ -10,7 +10,7 @@ import optuna
 from neuralforecast.losses.pytorch import MAE
 from neuralforecast.common._base_windows import BaseWindows
 
-from .pooling_methods import SparsePooling
+from .pooling_methods import SparsePooling, SharedExpertPooling
 
 class IdentityBasis(nn.Module):
     def __init__(self, backcast_size: int, forecast_size: int, out_features: int = 1):
@@ -158,6 +158,8 @@ class NBEATSBlock(nn.Module):
         nr_experts: int = 8,
         top_k: int = 2,
         return_gate_logits: bool = False,
+        share_experts: bool = False,
+        bias_load_balancer: bool = False,
     ):
         """ """
         super().__init__()
@@ -167,10 +169,11 @@ class NBEATSBlock(nn.Module):
         assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
         activ = getattr(nn, activation)()
 
-        self.nr_experts = nr_experts
+        self.nr_experts = nr_experts + 1 if share_experts else nr_experts
         self.k = top_k
         self.experts = nn.ModuleList()
         self.return_gate_logits = return_gate_logits
+        self.share_experts = share_experts
 
         self.gate = nn.Sequential(
             nn.LayerNorm(input_size),
@@ -178,6 +181,7 @@ class NBEATSBlock(nn.Module):
         )
 
         self.softmax = nn.Softmax(dim=1)
+        self.bias_load_balancer = bias_load_balancer
 
         for i in range(self.nr_experts):
 
@@ -198,11 +202,26 @@ class NBEATSBlock(nn.Module):
 
             self.experts.append(self.layers)
 
-        self.pooling = SparsePooling(
-            experts=self.experts, gate=self.gate, out_features=n_theta, k=self.k, 
-            unpack=False, return_soft_gates=True
-        )
-        
+        if not self.share_experts:
+            self.pooling = SparsePooling(
+                experts=self.experts, gate=self.gate, out_features=n_theta, k=self.k, 
+                unpack=False, return_soft_gates=True,
+                bias=self.bias_load_balancer,
+            )
+        else:
+            self.pooling = SharedExpertPooling(
+                experts=self.experts[1:],
+                sparse_gate=self.gate,
+                gate= nn.Linear(
+                    in_features=input_size,
+                    out_features=2
+                ),
+                shared_expert=self.experts[0],
+                out_features=n_theta, k=self.k, 
+                unpack=False, return_soft_gates=True,
+                bias=self.bias_load_balancer,
+            )
+
         self.n_theta = n_theta
         self.basis = basis
 
@@ -284,7 +303,7 @@ class NBeatsMoe(BaseWindows):
         mlp_units: list = 3 * [[64, 64]],
         dropout_prob_theta: float = 0.0,
         activation: str = "ReLU",
-        shared_weights: bool = False,
+        shared_weights: bool = True,
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -300,8 +319,10 @@ class NBeatsMoe(BaseWindows):
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
-        nr_experts: int = 8,
-        top_k: int = 2,
+        nr_experts: int = 4,
+        top_k: int = 1,
+        share_experts: bool = False,
+        bias_load_balancer: bool = False,
         return_gate_logits: bool = False,
         drop_last_loader: bool = False,
         store_all_gate_logits: bool = False,
@@ -355,6 +376,8 @@ class NBeatsMoe(BaseWindows):
         self.return_gate_logits = return_gate_logits
         self._training = True
         self.store_all_gate_logits = store_all_gate_logits
+        self.share_experts = share_experts
+        self.bias_load_balancer = bias_load_balancer
 
         # Architecture
         blocks = self.create_stack(
@@ -443,6 +466,8 @@ class NBeatsMoe(BaseWindows):
                         nr_experts=self.nr_experts,
                         top_k=self.top_k,
                         return_gate_logits=self.return_gate_logits,
+                        share_experts=self.share_experts,
+                        bias_load_balancer=self.bias_load_balancer,
                     )
 
                 # Select type of evaluation and apply it to all layers of block
