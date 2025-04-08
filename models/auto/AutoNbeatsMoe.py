@@ -92,7 +92,7 @@ class AutoNBEATSMoE(BaseAuto):
         )
 
         if shared_expert:
-            config["shared_expert"] = tune.choice([True])
+            config["share_experts"] = tune.choice([True])
 
         config["step_size"] = tune.choice([1, h])
         del config["input_size_multiplier"]

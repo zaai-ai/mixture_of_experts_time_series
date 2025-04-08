@@ -1,10 +1,10 @@
 # TODO List
 
 ## High Priority
-- [ ] Task 1: Correr exp e hyper para outros datasets e frequencias
+- [x] Task 1: Correr exp e hyper para outros datasets e frequencias
 
 ## Medium Priority
-- [ ] Task 2: Explorar uso de loss-function-free (já usei uma mas neste caso explorar o do deepseek)
+- [x] Task 2: Explorar uso de loss-function-free (já usei uma mas neste caso explorar o do deepseek)
 
 ## Low Priority
 - [ ] Task 3: Explorar outras gates
