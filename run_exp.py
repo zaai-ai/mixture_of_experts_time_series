@@ -24,6 +24,8 @@ from neuralforecast.models import NBEATS
 
 from omegaconf import ListConfig
 
+STORAGE = "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study_nbeats_blcs.db"
+
 def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseModel:
     if name.lower() == "nbeatsmoe":
         return NBeatsMoe(h=horizon, **best_params)
@@ -105,7 +107,7 @@ def main(cfg: DictConfig):
                 try:
                     study = optuna.load_study(
                         study_name=study_name,
-                        storage="sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study.db",
+                        storage=STORAGE,
                     )
                     break
                 except KeyError:

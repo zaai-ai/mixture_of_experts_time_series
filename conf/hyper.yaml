@@ -6,14 +6,14 @@ version_base: 1.1
 #
 
 model:
-  name:  ["nbeatsmoeshared"] # ["nbeats"] # ["nbeats"] # "nbeatsmoe",
-horizon: [8] # [12, 18, 24] #  [4, 6] #, 12, 18, 24]
+  name:  ["nbeats", "nbeatsmoe", "nbeatsstackmoe", "nbeatsmoeshared"] # ["nbeats"] # ["nbeats"] # "nbeatsmoe",
+horizon: [6] # [12, 18, 24] #  [4, 6] #, 12, 18, 24]
 
 all: False
 
 dataset:
-  name: "m3"
+  name: "gluonts_m1_monthly"
   directory: "C:\\Users\\ricar\\mixture_of_experts_time_series\\data\\m3\\"
-  group: "Quarterly"
-  freq: "Q"
-         
+  group: "Yearly"
+  freq: "Y"
+       
