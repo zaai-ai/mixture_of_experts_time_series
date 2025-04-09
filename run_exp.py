@@ -28,6 +28,8 @@ STORAGE = "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study_nbea
 
 def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseModel:
     if name.lower() == "nbeatsmoe":
+        # if best_params["mlp_units"][0][0] == 512 or best_params["mlp_units"][0][0] == 256:
+        #     best_params["mlp_units"] = [[128, 128], [128, 128], [128, 128]]
         return NBeatsMoe(h=horizon, **best_params)
     elif name.lower() == "nbeats":
         best_params["scaler_type"] = "identity"
@@ -36,6 +38,8 @@ def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseMo
         best_params["scaler_type"] = "identity"
         return NBeatsStackMoe(h=horizon, **best_params)
     elif name.lower() == "nbeatsmoeshared":
+        # if best_params["mlp_units"][0][0] == 512 or best_params["mlp_units"][0][0] == 256:
+        #     best_params["mlp_units"] = [[128, 128], [128, 128], [128, 128]]
         return NBeatsMoe(h=horizon,  **best_params)
     elif name.lower() == "informermoe":
         return InformerMoe(h=horizon, **best_params)
