@@ -15,6 +15,7 @@ from neuralforecast.auto import BaseAuto
 from models.auto.AutoNbeatsMoe import AutoNBEATSMoE
 from models.auto.AutoInformerMoe import AutoInformerMoe
 from models.auto.AutoMlpMoe import AutoMLPMoe
+from models.auto.AutoNbeatsStackMoe import AutoNBeatsStackMoe
 from neuralforecast.auto import AutoNBEATS, AutoVanillaTransformer, AutoMLP
 
 STORAGE = "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study_nbeats_blcs.db"
@@ -105,7 +106,7 @@ def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
             "start_padding_enabled": tune.choice([True]),
         }
 
-        return AutoNBEATS(
+        return AutoNBeatsStackMoe(
             h=horizon, 
             config=BaseAuto._ray_config_to_optuna(config),
             num_samples=20,

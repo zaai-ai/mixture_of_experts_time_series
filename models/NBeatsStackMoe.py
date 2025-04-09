@@ -330,7 +330,7 @@ class NBeatsStackMoe(BaseWindows):
 
         self.gate = nn.Sequential(
             nn.LayerNorm(input_size),
-            nn.Linear(in_features=input_size, out_features=len(stack_types)),
+            nn.Linear(in_features=input_size, out_features=sum(n_blocks)),
         )
 
     def create_stack(

@@ -4,28 +4,29 @@ import torch
 from neuralforecast.auto import AutoNBEATS
 from ray import tune
 
-from models.NBeatsMoe import NBeatsMoe
+from models.NBeatsStackMoe import NBeatsStackMoe 
 
 from ray.tune.search.basic_variant import BasicVariantGenerator
 from neuralforecast.losses.pytorch import MAE
 from neuralforecast.auto import BaseAuto
 
 
-class NBeatsStackMoe(BaseAuto):
+class AutoNBeatsStackMoe(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [1, 2, 3, 4, 5],
-        "h": None,
+        # "stack_types": tune.choice([["identity", "trend", "seasonality"], ["identity", "trend"]]),
         "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(9)]),
-        "learning_rate": tune.loguniform(1e-4, 1e-1),
+        # "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice(["identity"]),
-        "max_steps": tune.choice([1000, 2500, 5000]),
+        "max_steps": tune.choice([1000, 2500, 5000, 10000]),
+        "shared_weights": tune.choice([True]),
+        "n_blocks": tune.choice([3 * [x] for x in [1, 3, 6, 9]]),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "random_seed": tune.randint(1, 20),
-        "early_stop_patience_steps": tune.choice([5, 10, 20]),
+        "early_stop_patience_steps": tune.choice([10, 20]),
         "start_padding_enabled": tune.choice([True]),
-
     }
 
     def __init__(
@@ -50,7 +51,7 @@ class NBeatsStackMoe(BaseAuto):
         if config is None:
             config = self.get_default_config(h=h, backend=backend)
 
-        super(NBeatsStackMoe, self).__init__(
+        super(AutoNBeatsStackMoe, self).__init__(
             cls_model=NBeatsStackMoe,
             h=h,
             loss=loss,

@@ -116,7 +116,7 @@ def main(cfg: DictConfig):
                     tentatives += 1
                     study_name = f"{model_name}_{cfg.dataset.name}_{cfg.dataset.group}_{horizon + tentatives}"
 
-            if tentatives == 10:
+            if tentatives == 24:
                 print("Error: There is no study available")
 
             results = {"smape": [], "mae": [], "mse": []}
