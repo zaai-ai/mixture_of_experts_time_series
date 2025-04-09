@@ -33,6 +33,8 @@ def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseMo
     elif name.lower() == "nbeatsstackmoe":
         best_params["scaler_type"] = "identity"
         return NBeatsStackMoe(h=horizon, **best_params)
+    elif name.lower() == "nbeatsmoeshared":
+        return NBeatsMoe(h=horizon,  **best_params)
     elif name.lower() == "informermoe":
         return InformerMoe(h=horizon, **best_params)
     elif name.lower() == "vanillatransformer":
@@ -163,7 +165,7 @@ def main(cfg: DictConfig):
             print(median.round(4))
 
             # Save results to a CSV file with the specified columns
-            save_results_summary(model_name, cfg.dataset, horizon, std_dev, median, results_file="C:\\Users\\ricar\\mixture_of_experts_time_series\\results_summary_100_trials.csv")
+            save_results_summary(model_name, cfg.dataset, horizon, std_dev, median, results_file="C:\\Users\\ricar\\mixture_of_experts_time_series\\results_summary_with_blcs.csv")
 
 if __name__ == "__main__":
     main()
