@@ -16,3 +16,9 @@ dataset:
   directory: "C:\\Users\\ricar\\mixture_of_experts_time_series\\data\\m4\\"
   group: "Yearly"
   freq: "Y"
+
+
+##
+## shared e stack no monthly ... 19 ( faltam) no shared
+## moe (6) ... shared e stack ... Quarterly
+##

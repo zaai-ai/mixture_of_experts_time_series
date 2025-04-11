@@ -160,6 +160,7 @@ class NBEATSBlock(nn.Module):
         return_gate_logits: bool = False,
         share_experts: bool = False,
         bias_load_balancer: bool = False,
+        scale_expert_complexity: bool = False,
     ):
         """ """
         super().__init__()
@@ -184,6 +185,12 @@ class NBEATSBlock(nn.Module):
         self.bias_load_balancer = bias_load_balancer
 
         for i in range(self.nr_experts):
+
+            if scale_expert_complexity:
+                mlp_units = [
+                    [int(np.ceil(layer[0] / (i+1))), int(np.ceil(layer[1]/(i+1)))] for layer in mlp_units
+                ]
+
 
             hidden_layers = [
                 nn.Linear(in_features=input_size, out_features=mlp_units[0][0])
@@ -300,7 +307,7 @@ class NBeatsMoe(BaseWindows):
         n_polynomials: int = 2,
         stack_types: list = ["identity", "trend", "seasonality"],
         n_blocks: list = [1, 1, 1],
-        mlp_units: list = 3 * [[64, 64]],
+        mlp_units: list = 3 * [[512, 512]],
         dropout_prob_theta: float = 0.0,
         activation: str = "ReLU",
         shared_weights: bool = True,
@@ -319,7 +326,7 @@ class NBeatsMoe(BaseWindows):
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
-        nr_experts: int = 4,
+        nr_experts: int = 16,
         top_k: int = 1,
         share_experts: bool = False,
         bias_load_balancer: bool = False,
