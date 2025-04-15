@@ -333,6 +333,7 @@ class NBeatsMoe(BaseWindows):
         return_gate_logits: bool = False,
         drop_last_loader: bool = False,
         store_all_gate_logits: bool = False,
+        scale_expert_complexity: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
         lr_scheduler=None,
@@ -385,6 +386,7 @@ class NBeatsMoe(BaseWindows):
         self.store_all_gate_logits = store_all_gate_logits
         self.share_experts = share_experts
         self.bias_load_balancer = bias_load_balancer
+        self.scale_expert_complexity = scale_expert_complexity
 
         # Architecture
         blocks = self.create_stack(
@@ -475,6 +477,7 @@ class NBeatsMoe(BaseWindows):
                         return_gate_logits=self.return_gate_logits,
                         share_experts=self.share_experts,
                         bias_load_balancer=self.bias_load_balancer,
+                        scale_expert_complexity=self.scale_expert_complexity,
                     )
 
                 # Select type of evaluation and apply it to all layers of block
