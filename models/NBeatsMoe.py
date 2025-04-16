@@ -142,7 +142,7 @@ class SeasonalityBasis(nn.Module):
 ACTIVATIONS = ["ReLU", "Softplus", "Tanh", "SELU", "LeakyReLU", "PReLU", "Sigmoid"]
 
 
-class NBEATSBlock(nn.Module):
+class NBEATSMoEBlock(nn.Module):
     """
     N-BEATS block which takes a basis function as an argument.
     """
@@ -157,6 +157,7 @@ class NBEATSBlock(nn.Module):
         activation: str,
         nr_experts: int = 8,
         top_k: int = 2,
+        pre_experts: Optional[nn.ModuleList] = None,
         return_gate_logits: bool = False,
         share_experts: bool = False,
         bias_load_balancer: bool = False,
@@ -208,6 +209,9 @@ class NBEATSBlock(nn.Module):
             self.layers = nn.Sequential(*layers)
 
             self.experts.append(self.layers)
+
+        if pre_experts is not None:
+            self.experts = pre_experts
 
         if not self.share_experts:
             self.pooling = SparsePooling(
@@ -328,6 +332,7 @@ class NBeatsMoe(BaseWindows):
         random_seed: int = 1,
         nr_experts: int = 4,
         top_k: int = 2,
+        pre_blocks: Optional[nn.ModuleList] = None,
         share_experts: bool = False,
         bias_load_balancer: bool = False,
         return_gate_logits: bool = False,
@@ -401,7 +406,7 @@ class NBeatsMoe(BaseWindows):
             n_polynomials=n_polynomials,
             n_harmonics=n_harmonics,
         )
-        self.blocks = torch.nn.ModuleList(blocks)
+        self.blocks = torch.nn.ModuleList(blocks) if pre_blocks is None else pre_blocks
         self.all_gate_logits = [[] for _ in range(len(blocks))]
         self.all_inputs = [[] for _ in range(len(blocks))]
 
@@ -465,7 +470,7 @@ class NBeatsMoe(BaseWindows):
                     else:
                         raise ValueError(f"Block type {stack_types[i]} not found!")
 
-                    nbeats_block = NBEATSBlock(
+                    nbeats_block = NBEATSMoEBlock(
                         input_size=input_size,
                         n_theta=n_theta,
                         mlp_units=mlp_units,
