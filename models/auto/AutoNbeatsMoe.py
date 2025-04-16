@@ -50,11 +50,13 @@ class AutoNBEATSMoE(BaseAuto):
         backend="ray",
         callbacks=None,
         optuna_kargs=None,
+        scale_expert_complexity=False,
     ):
 
         # Define search space, input/output sizes
         if config is None:
-            config = self.get_default_config(h=h, backend=backend, shared_expert=shared_expert)
+            config = self.get_default_config(h=h, backend=backend, shared_expert=shared_expert, 
+                                             scale_expert_complexity=scale_expert_complexity)
 
         super(AutoNBEATSMoE, self).__init__(
             cls_model=NBeatsMoe,
@@ -77,7 +79,7 @@ class AutoNBEATSMoE(BaseAuto):
         self.shared_expert = shared_expert
 
     @classmethod
-    def get_default_config(cls, h, backend, n_series=None, shared_expert=False):
+    def get_default_config(cls, h, backend, n_series=None, shared_expert=False, scale_expert_complexity=False):
 
         # def config_with_correct_top_k(trial):
         #     conf = config(trial)
@@ -93,6 +95,9 @@ class AutoNBEATSMoE(BaseAuto):
 
         if shared_expert:
             config["share_experts"] = tune.choice([True])
+
+        if scale_expert_complexity:
+            config["scale_expert_complexity"] = tune.choice([True])
 
         config["step_size"] = tune.choice([1, h])
         del config["input_size_multiplier"]

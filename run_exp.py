@@ -11,7 +11,7 @@ from neuralforecast.tsdataset import TimeSeriesDataset
 from neuralforecast import NeuralForecast
 
 import optuna
-from neuralforecast.losses.numpy import smape, mae, mse
+from neuralforecast.losses.numpy import smape, mae, mse, mase
 from neuralforecast.losses.pytorch import HuberLoss
 
 from utils import load_dataset, train_test_split
@@ -27,7 +27,7 @@ from omegaconf import ListConfig
 STORAGE = "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study_nbeats_blcs.db"
 
 def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseModel:
-    if name.lower() == "nbeatsmoe":
+    if name.lower() == "nbeatsmoe" or name.lower() == "nbeatsmoescaled":
         # if best_params["mlp_units"][0][0] == 512 or best_params["mlp_units"][0][0] == 256:
         #     best_params["mlp_units"] = [[128, 128], [128, 128], [128, 128]]
         return NBeatsMoe(h=horizon, **best_params)
@@ -49,7 +49,7 @@ def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseMo
         raise ValueError(
             f"Model '{name}' is not defined.")
 
-def save_results_summary(model_name, dataset, horizon, std_dev, median, results_file="results_summary.csv"):
+def save_results_summary(model_name, dataset, horizon, std_dev, median, mean, results_file="results_summary.csv"):
     """
     Saves model evaluation metrics to a CSV file.
 
@@ -67,9 +67,15 @@ def save_results_summary(model_name, dataset, horizon, std_dev, median, results_
         "std_dev_smape": std_dev["smape"],
         "std_dev_mae": std_dev["mae"],
         "std_dev_mse": std_dev["mse"],
+        "std_dev_mase": std_dev["mase"],
         "median_smape": median["smape"],
         "median_mae": median["mae"],
         "median_mse": median["mse"],
+        "median_mase": median["mase"],
+        "mean_smape": mean["smape"],
+        "mean_mae": mean["mae"],
+        "mean_mse": mean["mse"],
+        "mean_mase": mean["mase"],
     }
 
     try:
@@ -80,6 +86,25 @@ def save_results_summary(model_name, dataset, horizon, std_dev, median, results_
 
     results_summary.to_csv(results_file, index=False)
 
+def convert_freq_to_int(freq: str) -> int:
+    """
+    Converts a frequency string to an integer.
+
+    Parameters:
+        freq (str): Frequency string (e.g., 'H', 'D', 'M').
+
+    Returns:
+        int: Corresponding integer value for the frequency.
+    """
+    freq_map = {
+        # "H": 24,
+        # "D": 7,
+        # "W": 52,
+        "M": 12,
+        "Q": 4,
+        "Y": 1,
+    }
+    return freq_map.get(freq, 1)
 
 @hydra.main(config_path="conf", config_name="exp.yaml")
 def main(cfg: DictConfig):
@@ -123,14 +148,14 @@ def main(cfg: DictConfig):
             if tentatives == 24:
                 print("Error: There is no study available")
 
-            results = {"smape": [], "mae": [], "mse": []}
+            results = {"smape": [], "mae": [], "mse": [], "mase": []}
 
             list_random_seeds = random.sample(range(1, 1000), 10)
             for i in range(10):
                 random_seed = list_random_seeds[i]
                 best_params = deepcopy(study.best_params)
                 best_params["random_seed"] = random_seed
-
+  
                 print(f"best_params: {best_params}")
 
                 model = get_instance(model_name, best_params, horizon)
@@ -151,10 +176,12 @@ def main(cfg: DictConfig):
                 smape_e = smape(y_true, y_hat)
                 mae_e = mae(y_true, y_hat)
                 mse_e = mse(y_true, y_hat)
+                mase_e = mase(y_true, y_hat,y_train=Y_train_df['y'].values, seasonality=convert_freq_to_int(cfg.dataset.freq))
 
                 results["smape"].append(smape_e)
                 results["mae"].append(mae_e)
                 results["mse"].append(mse_e)
+                results["mase"].append(mase_e)
 
                 print(f"results: {results}")
 
@@ -164,14 +191,17 @@ def main(cfg: DictConfig):
             # Calculate standard deviation and median for each metric
             std_dev = results_df.std()
             median = results_df.median()
+            mean = results_df.mean()
 
             print("Standard Deviation:")
             print(std_dev.round(4))
             print("\nMedian:")   
             print(median.round(4))
+            print("\nMean:")
+            print(mean.round(4))
 
             # Save results to a CSV file with the specified columns
-            save_results_summary(model_name, cfg.dataset, horizon, std_dev, median, results_file="C:\\Users\\ricar\\mixture_of_experts_time_series\\results_summary_with_blcs.csv")
+            save_results_summary(model_name, cfg.dataset, horizon, std_dev, median, mean, results_file="C:\\Users\\ricar\\mixture_of_experts_time_series\\results_summary_with_blcs.csv")
 
 if __name__ == "__main__":
     main()

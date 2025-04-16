@@ -10,13 +10,12 @@ from pytorch_lightning.callbacks import LearningRateMonitor
 import math
 from functools import partial
 
-from neuralforecast.losses.pytorch import SMAPE, HuberLoss, MSE
+from neuralforecast.losses.pytorch import SMAPE, HuberLoss, MSE, MAPE, MAE
 
 from torch.optim.lr_scheduler import LambdaLR, LRScheduler
 from datasets.load_data.gluonts_dataset import GluontsDataset
 
-# Import your model classes (here we assume the module name matches the
-# model name)
+# Import your model classes
 from models.SimpleMoe import SimpleMoe
 from models.TimeMoeAdapted import TimeMoeAdapted
 from models.InformerMoe import InformerMoe

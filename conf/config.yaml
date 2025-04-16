@@ -88,8 +88,8 @@ models:
   nbeatsMoe:
     params:
       input_size: 24
-      loss: "HuberLoss"         # Single string value (will be eval'd to a loss instance)
-      valid_loss: "HuberLoss"    # Single string value
+      loss: "MAE"         # Single string value (will be eval'd to a loss instance)
+      valid_loss: "MAE"    # Single string value
       early_stop_patience_steps: 10  # A single number
       val_check_steps: 100
       batch_size: 32

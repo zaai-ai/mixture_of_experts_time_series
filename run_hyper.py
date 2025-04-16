@@ -21,14 +21,15 @@ from neuralforecast.auto import AutoNBEATS, AutoVanillaTransformer, AutoMLP
 STORAGE = "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study_nbeats_blcs.db"
 
 def get_model(name: str, horizon: int, study_name: str, n_lags: int = None):
-    if name.lower() == "nbeatsmoe":
+    if name.lower() == "nbeatsmoe" or name.lower() == "nbeatsmoescaled":
         config = None
         if n_lags:
             config = {
                 "h": None,
-                "input_size": tune.choice([n_lags]),
+                "input_size": tune.choice([n_lags]), 
                 "mlp_units": tune.choice([3 * [[pow(2, 2+x), pow(2, 2+x)]] for x in range(8)]),
                 # "learning_rate": tune.loguniform(1e-4, 1e-1),
+                "scale_expert_complexity" : tune.choice([True if name.lower() == "nbeatsmoescaled" else False]),
                 "n_blocks": tune.choice([3 * [x] for x in [1, 3, 6, 9]]),
                 "scaler_type": tune.choice(["identity"]),
                 "shared_weights": tune.choice([True]),
