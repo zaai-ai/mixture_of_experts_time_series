@@ -211,6 +211,7 @@ class NBEATSMoEBlock(nn.Module):
             self.experts.append(self.layers)
 
         if pre_experts is not None:
+            del self.layers
             self.experts = pre_experts
 
         if not self.share_experts:
