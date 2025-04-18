@@ -211,7 +211,6 @@ class NBEATSMoEBlock(nn.Module):
             self.experts.append(self.layers)
 
         if pre_experts is not None:
-            del self.layers
             self.experts = pre_experts
 
         if not self.share_experts:
@@ -233,6 +232,9 @@ class NBEATSMoEBlock(nn.Module):
                 unpack=False, return_soft_gates=True,
                 bias=self.bias_load_balancer,
             )
+
+        del self.layers
+        del self.experts
 
         self.n_theta = n_theta
         self.basis = basis

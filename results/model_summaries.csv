@@ -35,3 +35,15 @@ nbeats,m3,Y,1314.0,,,1314.0
 nbeatsmoe,m3,Y,3992.0,8,1,499.0
 nbeatsmoeshared,m3,Y,10845.0,8,2,3615.0
 nbeatsstackmoe,m3,Y,3724.0,,,3724.0
+nbeats,m4,M,181326.0,,,181326.0
+nbeatsmoe,m4,M,161124.0,8,2,40281.0
+nbeatsmoeshared,m4,M,479211.0,8,8,479211.0
+nbeatsstackmoe,m4,M,9769267.0,,,9769267.0
+nbeats,m4,Q,175746.0,,,175746.0
+nbeatsmoe,m4,Q,356704.0,8,8,356704.0
+nbeatsmoeshared,m4,Q,22074947.0,8,1,4905543.78
+nbeatsstackmoe,m4,Q,620989.0,,,620989.0
+nbeats,m4,Y,2419050.0,,,2419050.0
+nbeatsmoe,m4,Y,3096.0,2,2,3096.0
+nbeatsmoeshared,m4,Y,5688501.0,8,2,1896167.0
+nbeatsstackmoe,m4,Y,2419143.0,,,2419143.0
