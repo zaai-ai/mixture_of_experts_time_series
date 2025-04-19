@@ -155,6 +155,7 @@ class NBEATSMoEBlock(nn.Module):
         basis: nn.Module,
         dropout_prob: float,
         activation: str,
+        gate_type: str = "linear",
         nr_experts: int = 8,
         top_k: int = 2,
         pre_experts: Optional[nn.ModuleList] = None,
@@ -177,10 +178,55 @@ class NBEATSMoEBlock(nn.Module):
         self.return_gate_logits = return_gate_logits
         self.share_experts = share_experts
 
-        self.gate = nn.Sequential(
-            nn.LayerNorm(input_size),
-            nn.Linear(in_features=input_size, out_features=self.nr_experts),
-        )
+        if gate_type == "linear":
+            self.gate = nn.Sequential(
+                nn.LayerNorm(input_size),
+                nn.Linear(in_features=input_size, out_features=self.nr_experts),
+            )
+        elif gate_type == "mlp":
+            self.gate = nn.Sequential(
+                nn.LayerNorm(input_size),
+                nn.Linear(in_features=input_size, out_features=input_size*2),
+                activ,
+                nn.Linear(in_features=input_size*2, out_features=self.nr_experts),
+            )
+        elif gate_type == "conv1d-flatten":
+            self.gate = nn.Sequential(
+                nn.LayerNorm(input_size),
+                nn.Unflatten(1, (input_size, 1)),  # [batch, features] → [batch, features, 1]
+                nn.Conv1d(in_channels=input_size, out_channels=nr_experts, kernel_size=1),
+                nn.Flatten(1),  # [batch, nr_experts, 1] → [batch, nr_experts]
+            )
+        elif gate_type == "conv1d-gap":
+            # self.gate = nn.Sequential(
+            #     nn.LayerNorm(input_size),
+            #     nn.Unflatten(1, (input_size, 1)),
+            #     nn.Conv1d(in_channels=input_size, out_channels=nr_experts, kernel_size=1),
+            #     nn.AdaptiveAvgPool1d(1),
+            #     nn.Flatten(1),
+            # )
+            self.gate = nn.Sequential(
+                nn.LayerNorm(input_size),
+                
+                nn.Unflatten(1, (1, input_size)),
+
+                # conv block (→ [batch, 32, input_size])
+                nn.Conv1d(in_channels=1,  out_channels=16, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.Conv1d(in_channels=16, out_channels=32, kernel_size=3, padding=1),
+                nn.ReLU(),
+
+                # global pooling → [batch, 32, 1]
+                nn.AdaptiveAvgPool1d(1),
+
+                # project to nr_experts → [batch, nr_experts, 1]
+                nn.Conv1d(in_channels=32, out_channels=nr_experts, kernel_size=1),
+
+                # flatten away the length dim → [batch, nr_experts]
+                nn.Flatten(1),
+            )
+        else:
+            raise ValueError(f"gate_type {gate_type} not found!")
 
         self.softmax = nn.Softmax(dim=1)
         self.bias_load_balancer = bias_load_balancer
@@ -333,6 +379,7 @@ class NBeatsMoe(BaseWindows):
         step_size: int = 1,
         scaler_type: str = "identity",
         random_seed: int = 1,
+        gate_type: str = "linear",
         nr_experts: int = 4,
         top_k: int = 2,
         pre_blocks: Optional[nn.ModuleList] = None,
@@ -395,6 +442,7 @@ class NBeatsMoe(BaseWindows):
         self.share_experts = share_experts
         self.bias_load_balancer = bias_load_balancer
         self.scale_expert_complexity = scale_expert_complexity
+        self.gate_type = gate_type
 
         # Architecture
         blocks = self.create_stack(
@@ -482,6 +530,7 @@ class NBeatsMoe(BaseWindows):
                         activation=activation,
                         nr_experts=self.nr_experts,
                         top_k=self.top_k,
+                        gate_type=self.gate_type,
                         return_gate_logits=self.return_gate_logits,
                         share_experts=self.share_experts,
                         bias_load_balancer=self.bias_load_balancer,
