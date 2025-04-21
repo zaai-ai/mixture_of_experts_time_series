@@ -207,21 +207,16 @@ class NBEATSMoEBlock(nn.Module):
             # )
             self.gate = nn.Sequential(
                 nn.LayerNorm(input_size),
-                
                 nn.Unflatten(1, (1, input_size)),
-
                 # conv block (→ [batch, 32, input_size])
-                nn.Conv1d(in_channels=1,  out_channels=16, kernel_size=3, padding=1),
+                nn.Conv1d(in_channels=1,  out_channels=nr_experts*8, kernel_size=3, padding=1),
                 nn.ReLU(),
-                nn.Conv1d(in_channels=16, out_channels=32, kernel_size=3, padding=1),
+                nn.Conv1d(in_channels=nr_experts*8, out_channels=nr_experts*16, kernel_size=3, padding=1),
                 nn.ReLU(),
-
                 # global pooling → [batch, 32, 1]
                 nn.AdaptiveAvgPool1d(1),
-
                 # project to nr_experts → [batch, nr_experts, 1]
-                nn.Conv1d(in_channels=32, out_channels=nr_experts, kernel_size=1),
-
+                nn.Conv1d(in_channels=nr_experts*16, out_channels=nr_experts, kernel_size=1),
                 # flatten away the length dim → [batch, nr_experts]
                 nn.Flatten(1),
             )
