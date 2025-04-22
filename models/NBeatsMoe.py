@@ -198,14 +198,7 @@ class NBEATSMoEBlock(nn.Module):
                 nn.Conv1d(in_channels=input_size, out_channels=nr_experts, kernel_size=1),
                 nn.Flatten(1),  # [batch, nr_experts, 1] → [batch, nr_experts]
             )
-        elif gate_type == "conv1d-gap":
-            # self.gate = nn.Sequential(
-            #     nn.LayerNorm(input_size),
-            #     nn.Unflatten(1, (input_size, 1)),
-            #     nn.Conv1d(in_channels=input_size, out_channels=nr_experts, kernel_size=1),
-            #     nn.AdaptiveAvgPool1d(1),
-            #     nn.Flatten(1),
-            # )
+        elif gate_type == "conv1d-aap":
             self.gate = nn.Sequential(
                 nn.LayerNorm(input_size),
                 nn.Unflatten(1, (1, input_size)),
@@ -219,6 +212,18 @@ class NBEATSMoEBlock(nn.Module):
                 # project to nr_experts → [batch, nr_experts, 1]
                 nn.Conv1d(in_channels=nr_experts*16, out_channels=nr_experts, kernel_size=1),
                 # flatten away the length dim → [batch, nr_experts]
+                nn.Flatten(1),
+            )
+        elif gate_type == "conv1d-maxpool":
+            self.gate = nn.Sequential(
+                nn.LayerNorm(input_size),
+                nn.Unflatten(1, (1, input_size)),
+                nn.Conv1d(1, nr_experts * 8, 3, padding=1),
+                nn.ReLU(),
+                nn.Conv1d(nr_experts * 8, nr_experts * 16, 3, padding=1),
+                nn.ReLU(),
+                nn.AdaptiveMaxPool1d(1),
+                nn.Conv1d(nr_experts * 16, nr_experts, 1),
                 nn.Flatten(1),
             )
         else:

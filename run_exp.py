@@ -31,6 +31,12 @@ def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseMo
         # if best_params["mlp_units"][0][0] == 512 or best_params["mlp_units"][0][0] == 256:
         #     best_params["mlp_units"] = [[128, 128], [128, 128], [128, 128]]
         return NBeatsMoe(h=horizon, **best_params)
+    elif name.lower() == "nbeatsmoe-conv1d-conv1d-aap-gate":
+        best_params["gate_type"] = "conv1d-aap"
+        return NBeatsMoe(h=horizon, **best_params)
+    elif name.lower() == "nbeatsmoe-conv1d-conv1d-maxpool-gate":
+        best_params["gate_type"] = "conv1d-maxpool"
+        return NBeatsMoe(h=horizon, **best_params)
     elif name.lower() == "nbeats":
         best_params["scaler_type"] = "identity"
         return NBEATS(h=horizon, **best_params)
@@ -85,6 +91,22 @@ def save_results_summary(model_name, dataset, horizon, std_dev, median, mean, re
         results_summary = pd.DataFrame([new_row])
 
     results_summary.to_csv(results_file, index=False)
+    
+def save_run_results(run_results, results_file="run_results.csv"):
+    """
+    Saves run results to a CSV file.
+
+    Parameters:
+        run_results (list): List of dictionaries containing run results.
+        results_file (str): Path to the results CSV file.
+    """
+    try:
+        run_results_df = pd.read_csv(results_file)
+        run_results_df = pd.concat([run_results_df, pd.DataFrame(run_results)], ignore_index=True)
+    except FileNotFoundError:
+        run_results_df = pd.DataFrame(run_results)
+
+    run_results_df.to_csv(results_file, index=False)
 
 def convert_freq_to_int(freq: str) -> int:
     """
@@ -152,6 +174,7 @@ def main(cfg: DictConfig):
 
             list_random_seeds = random.sample(range(1, 1000), 10)
             for i in range(10):
+                run_results = []
                 random_seed = list_random_seeds[i]
                 best_params = deepcopy(study.best_params)
                 best_params["random_seed"] = random_seed
@@ -182,7 +205,20 @@ def main(cfg: DictConfig):
                 results["mae"].append(mae_e)
                 results["mse"].append(mse_e)
                 results["mase"].append(mase_e)
+                
+                run_results.append({
+                    "dataset": cfg.dataset.name,
+                    "freq": cfg.dataset.group,
+                    "gate_type": best_params["gate_type"],
+                    "smape": smape_e,
+                    "mae": mae_e,
+                    "mse": mse_e,
+                    "mase": mase_e,
+                    "random_seed": random_seed,
+                })
 
+                save_run_results(run_results, results_file="/home/ricardo/mixture_of_experts_time_series/all_results.csv")
+                
                 print(f"results: {results}")
 
             # Convert results to a DataFrame
