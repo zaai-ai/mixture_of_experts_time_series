@@ -214,6 +214,20 @@ class NBEATSMoEBlock(nn.Module):
                 # flatten away the length dim → [batch, nr_experts]
                 nn.Flatten(1),
             )
+        elif gate_type == "conv1d-nopooling": # TODO: test
+            self.gate = nn.Sequential(
+                nn.LayerNorm(input_size),
+                nn.Unflatten(1, (1, input_size)),
+                # conv block (→ [batch, 32, input_size])
+                nn.Conv1d(in_channels=1,  out_channels=nr_experts*8, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.Conv1d(in_channels=nr_experts*8, out_channels=nr_experts*16, kernel_size=3, padding=1),
+                nn.ReLU(),
+                # project to nr_experts → [batch, nr_experts, 1]
+                nn.Conv1d(in_channels=nr_experts*16, out_channels=nr_experts, kernel_size=1),
+                # flatten away the length dim → [batch, nr_experts]
+                nn.Flatten(1),
+            )
         elif gate_type == "conv1d-maxpool":
             self.gate = nn.Sequential(
                 nn.LayerNorm(input_size),
