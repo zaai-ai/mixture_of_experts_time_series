@@ -109,3 +109,13 @@ m3,Q,conv1d-gap,0.096708,6
 m3,Q,conv1d-gap,0.095667,7
 m3,Q,conv1d-gap,0.096469,8
 m3,Q,conv1d-gap,0.095465,9
+m3,Q,conv1d-maxpool,0.093779,0
+m3,Q,conv1d-maxpool,0.096287,1
+m3,Q,conv1d-maxpool,0.095718,2
+m3,Q,conv1d-maxpool,0.094703,3
+m3,Q,conv1d-maxpool,0.094545,4
+m3,Q,conv1d-maxpool,0.098342,5
+m3,Q,conv1d-maxpool,0.098180,6
+m3,Q,conv1d-maxpool,0.096079,7
+m3,Q,conv1d-maxpool,0.097188,8
+m3,Q,conv1d-maxpool,0.094889,9
