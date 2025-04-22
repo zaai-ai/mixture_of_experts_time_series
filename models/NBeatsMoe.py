@@ -10,6 +10,7 @@ import optuna
 from neuralforecast.losses.pytorch import MAE
 from neuralforecast.common._base_windows import BaseWindows
 
+
 from .pooling_methods import SparsePooling, SharedExpertPooling
 
 class IdentityBasis(nn.Module):
