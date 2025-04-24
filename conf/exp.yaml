@@ -1,13 +1,13 @@
 version_base: 1.1
 
 model:
-  name:   [ "nbeatsmoe-conv1d-flatten", "nbeatsmoe-conv1d-aap", "nbeats", "nbeatsmoe"] # "nbeatsmoeshared" ["nbeats"] # ["nbeats"] # "nbeatsmoe",
+  name:   [ "nbeats"] # "nbeatsmoeshared" ["nbeats"] # ["nbeats"] # "nbeatsmoe",
 horizon: [18] # [12, 18, 24] #  [4, 6] #, 12, 18, 24]
 
 all: False
 
 dataset:
-  name: "gluonts_tourism_yearly" # "m3"
+  name: "gluonts_tourism_quarterly" # "m3"
   directory: "C:\\Users\\ricar\\mixture_of_experts_time_series\\data\\m4\\"
-  group: "Yearly" # "Quarterly" # "Monthly"
+  group: "Quarterly" # "Quarterly" # "Monthly"
   freq: 1
