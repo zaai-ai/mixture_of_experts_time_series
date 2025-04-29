@@ -7,7 +7,7 @@
 - [x] Task 2: Explorar uso de loss-function-free (já usei uma mas neste caso explorar o do deepseek)
 
 ## Low Priority
-- [ ] Task 3: Explorar outras gates
+- [x] Task 3: Explorar outras gates
 
 ## Notes
 - [DeepSeek loss-function-free](https://arxiv.org/pdf/2408.15664v1)

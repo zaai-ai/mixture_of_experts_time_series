@@ -156,6 +156,7 @@ class NBEATSMoEBlock(nn.Module):
         basis: nn.Module,
         dropout_prob: float,
         activation: str,
+        gate_input_size: int = None,
         gate_type: str = "linear",
         nr_experts: int = 8,
         top_k: int = 2,
@@ -179,29 +180,32 @@ class NBEATSMoEBlock(nn.Module):
         self.return_gate_logits = return_gate_logits
         self.share_experts = share_experts
 
+        if gate_input_size is None:
+            gate_input_size = input_size
+
         if gate_type == "linear":
             self.gate = nn.Sequential(
-                nn.LayerNorm(input_size),
-                nn.Linear(in_features=input_size, out_features=self.nr_experts),
+                nn.LayerNorm(gate_input_size),
+                nn.Linear(in_features=gate_input_size, out_features=self.nr_experts, bias=False),
             )
         elif gate_type == "mlp":
             self.gate = nn.Sequential(
-                nn.LayerNorm(input_size),
-                nn.Linear(in_features=input_size, out_features=input_size*2),
+                nn.LayerNorm(gate_input_size),
+                nn.Linear(in_features=gate_input_size, out_features=gate_input_size*2),
                 activ,
-                nn.Linear(in_features=input_size*2, out_features=self.nr_experts),
+                nn.Linear(in_features=gate_input_size*2, out_features=self.nr_experts),
             )
         elif gate_type == "conv1d-flatten":
             self.gate = nn.Sequential(
-                nn.LayerNorm(input_size),
-                nn.Unflatten(1, (input_size, 1)),  # [batch, features] → [batch, features, 1]
-                nn.Conv1d(in_channels=input_size, out_channels=nr_experts, kernel_size=1),
+                nn.LayerNorm(gate_input_size),
+                nn.Unflatten(1, (gate_input_size, 1)),  # [batch, features] → [batch, features, 1]
+                nn.Conv1d(in_channels=gate_input_size, out_channels=nr_experts, kernel_size=1),
                 nn.Flatten(1),  # [batch, nr_experts, 1] → [batch, nr_experts]
             )
         elif gate_type == "conv1d-aap":
             self.gate = nn.Sequential(
-                nn.LayerNorm(input_size),
-                nn.Unflatten(1, (1, input_size)),
+                nn.LayerNorm(gate_input_size),
+                nn.Unflatten(1, (1, gate_input_size)),
                 # conv block (→ [batch, 32, input_size])
                 nn.Conv1d(in_channels=1,  out_channels=nr_experts*8, kernel_size=3, padding=1),
                 nn.ReLU(),
@@ -216,8 +220,8 @@ class NBEATSMoEBlock(nn.Module):
             )
         elif gate_type == "conv1d-nopooling": # TODO: test
             self.gate = nn.Sequential(
-                nn.LayerNorm(input_size),
-                nn.Unflatten(1, (1, input_size)),
+                nn.LayerNorm(gate_input_size),
+                nn.Unflatten(1, (1, gate_input_size)),
                 # conv block (→ [batch, 32, input_size])
                 nn.Conv1d(in_channels=1,  out_channels=nr_experts*8, kernel_size=3, padding=1),
                 nn.ReLU(),
@@ -230,8 +234,8 @@ class NBEATSMoEBlock(nn.Module):
             )
         elif gate_type == "conv1d-maxpool":
             self.gate = nn.Sequential(
-                nn.LayerNorm(input_size),
-                nn.Unflatten(1, (1, input_size)),
+                nn.LayerNorm(gate_input_size),
+                nn.Unflatten(1, (1, gate_input_size)),
                 nn.Conv1d(1, nr_experts * 8, 3, padding=1),
                 nn.ReLU(),
                 nn.Conv1d(nr_experts * 8, nr_experts * 16, 3, padding=1),
@@ -255,17 +259,17 @@ class NBEATSMoEBlock(nn.Module):
 
 
             hidden_layers = [
-                nn.Linear(in_features=input_size, out_features=mlp_units[0][0])
+                nn.Linear(in_features=input_size, out_features=mlp_units[0][0], bias=False)
             ]
             for layer in mlp_units:
-                hidden_layers.append(nn.Linear(in_features=layer[0], out_features=layer[1]))
+                hidden_layers.append(nn.Linear(in_features=layer[0], out_features=layer[1], bias=False))
                 hidden_layers.append(activ)
 
                 if self.dropout_prob > 0:
                     raise NotImplementedError("dropout")
                     # hidden_layers.append(nn.Dropout(p=self.dropout_prob))
 
-            output_layer = [nn.Linear(in_features=mlp_units[-1][1], out_features=n_theta)]
+            output_layer = [nn.Linear(in_features=mlp_units[-1][1], out_features=n_theta, bias=False)]
             layers = hidden_layers + output_layer
             self.layers = nn.Sequential(*layers)
 
@@ -300,8 +304,8 @@ class NBEATSMoEBlock(nn.Module):
         self.n_theta = n_theta
         self.basis = basis
 
-    def forward(self, insample_y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        theta, gate_logits = self.pooling(insample_y)
+    def forward(self, insample_y: torch.Tensor, gate_insample: torch.Tensor = None) -> Tuple[torch.Tensor, torch.Tensor]:
+        theta, gate_logits = self.pooling(insample_y, gate_insample=gate_insample)
         
         backcast, forecast = self.basis(theta)
 
@@ -396,13 +400,15 @@ class NBeatsMoe(BaseWindows):
         random_seed: int = 1,
         gate_type: str = "linear",
         nr_experts: int = 4,
-        top_k: int = 2,
+        top_k: int = 1,
         pre_blocks: Optional[nn.ModuleList] = None,
         share_experts: bool = False,
-        bias_load_balancer: bool = False,
-        return_gate_logits: bool = False,
+        bias_load_balancer: bool = True,
+        auxiliary_loss: bool = False,
+        return_gate_logits: bool = True,
         drop_last_loader: bool = False,
-        store_all_gate_logits: bool = False,
+        store_all_gate_logits: bool = True,
+        use_forecast_as_input: bool = False,
         scale_expert_complexity: bool = False,
         optimizer=None,
         optimizer_kwargs=None,
@@ -458,6 +464,8 @@ class NBeatsMoe(BaseWindows):
         self.bias_load_balancer = bias_load_balancer
         self.scale_expert_complexity = scale_expert_complexity
         self.gate_type = gate_type
+        self.use_forecast_as_input = use_forecast_as_input
+        self.auxiliary_loss = auxiliary_loss
 
         # Architecture
         blocks = self.create_stack(
@@ -475,6 +483,8 @@ class NBeatsMoe(BaseWindows):
         self.blocks = torch.nn.ModuleList(blocks) if pre_blocks is None else pre_blocks
         self.all_gate_logits = [[] for _ in range(len(blocks))]
         self.all_inputs = [[] for _ in range(len(blocks))]
+
+        self.n_blocks = n_blocks
 
     def predict_step(self, batch, batch_idx):
         self._training = False
@@ -538,6 +548,7 @@ class NBeatsMoe(BaseWindows):
 
                     nbeats_block = NBEATSMoEBlock(
                         input_size=input_size,
+                        gate_input_size=h if self.use_forecast_as_input else None,
                         n_theta=n_theta,
                         mlp_units=mlp_units,
                         basis=basis,
@@ -556,6 +567,98 @@ class NBeatsMoe(BaseWindows):
                 block_list.append(nbeats_block)
 
         return block_list
+    
+    def training_step(self, batch, batch_idx):
+        # Create and normalize windows [Ws, L+H, C]
+        windows = self._create_windows(batch, step="train")
+        y_idx = batch["y_idx"]
+        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, y_idx])
+        windows = self._normalization(windows=windows, y_idx=y_idx)
+
+        # Parse windows
+        (
+            insample_y,
+            insample_mask,
+            outsample_y,
+            outsample_mask,
+            hist_exog,
+            futr_exog,
+            stat_exog,
+        ) = self._parse_windows(batch, windows)
+
+        windows_batch = dict(
+            insample_y=insample_y,  # [Ws, L]
+            insample_mask=insample_mask,  # [Ws, L]
+            futr_exog=futr_exog,  # [Ws, L + h, F]
+            hist_exog=hist_exog,  # [Ws, L, X]
+            stat_exog=stat_exog,
+        )  # [Ws, S]
+
+        # Model Predictions
+        output = self(windows_batch)
+        if self.loss.is_distribution_output:
+            _, y_loc, y_scale = self._inv_normalization(
+                y_hat=outsample_y, temporal_cols=batch["temporal_cols"], y_idx=y_idx
+            )
+            outsample_y = original_outsample_y
+            distr_args = self.loss.scale_decouple(
+                output=output, loc=y_loc, scale=y_scale
+            )
+            loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
+        else:
+            loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
+            if self.auxiliary_loss:
+                last_batch_layers = torch.cat([torch.cat(layer[-sum(self.n_blocks):], dim=0) for layer in self.all_gate_logits], dim=0)
+                # select top k experts
+                top_k_experts = torch.topk(last_batch_layers, self.top_k, dim=1).indices
+
+                # Assume top_k_experts is a tensor of shape [batch_size, k] containing indices of selected experts
+                # For example: top_k_experts = tensor([[2, 1], [2, 3], [2, 0]])
+
+                expert_counts = torch.zeros(self.nr_experts, device=top_k_experts.device)
+
+                # Flatten the top_k_experts so we can count all selected experts
+                flattened_experts = top_k_experts.flatten()
+
+                # Count how many times each expert index appears
+                expert_counts.scatter_add_(
+                    0,
+                    flattened_experts,
+                    torch.ones_like(flattened_experts, dtype=expert_counts.dtype)
+                )
+
+                # Normalize expert counts
+                p = expert_counts / expert_counts.sum()
+                target = torch.full_like(p, 1.0 / self.nr_experts)
+
+                # KL divergence between current distribution and uniform
+                lb_loss = F.kl_div(p.log(), target, reduction="batchmean")
+
+                self.log(
+                    "lb_loss",
+                    lb_loss.detach().item() * 10000,
+                    batch_size=outsample_y.size(0),
+                    prog_bar=True,
+                    on_epoch=True,
+                )
+                loss += lb_loss * 10000
+
+        if torch.isnan(loss):
+            print("Model Parameters", self.hparams)
+            print("insample_y", torch.isnan(insample_y).sum())
+            print("outsample_y", torch.isnan(outsample_y).sum())
+            print("output", torch.isnan(output).sum())
+            raise Exception("Loss is NaN, training stopped.")
+
+        self.log(
+            "train_loss",
+            loss.detach().item(),
+            batch_size=outsample_y.size(0),
+            prog_bar=True,
+            on_epoch=True,
+        )
+        self.train_trajectories.append((self.global_step, loss.detach().item()))
+        return loss
 
     def forward(self, windows_batch):
 
@@ -569,9 +672,14 @@ class NBeatsMoe(BaseWindows):
 
         forecast = insample_y[:, -1:, None]  # Level with Naive1
         block_forecasts = [forecast.repeat(1, self.h, 1)]
+        block_forecast = insample_y[:, -18:, None]
         for i, block in enumerate(self.blocks):
             if self.return_gate_logits:
-                backcast, block_forecast, gate_logits = block(insample_y=residuals)
+                if self.use_forecast_as_input:
+                    block_forecast: torch.Tensor = block_forecast[:, -self.h:, :].squeeze(-1)
+                    backcast, block_forecast, gate_logits = block(insample_y=residuals, gate_insample=block_forecast)
+                else:
+                    backcast, block_forecast, gate_logits = block(insample_y=residuals)
                 if not self._training or self.store_all_gate_logits:
                     self.all_gate_logits[i].append(gate_logits)
                     self.all_inputs[i].append(residuals)

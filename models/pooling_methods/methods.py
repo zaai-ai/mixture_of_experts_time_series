@@ -110,15 +110,16 @@ class SparsePooling(BasePooling):
         super(SparsePooling, self).__init__(experts, gate, out_features, device, unpack, return_soft_gates)
         self.k: int = k
 
-        self.bias: nn.Parameter = nn.Parameter(torch.empty(len(experts))) if bias else None
+        self.bias: nn.Parameter = nn.Parameter(torch.zeros(len(experts))) if bias else None
 
-    def forward(self, windows_batch: dict) -> torch.Tensor:
+    def forward(self, windows_batch: dict, gate_insample: torch.Tensor = None) -> torch.Tensor:
 
         if self.unpack: insample_y = windows_batch['insample_y']
         else: insample_y = windows_batch
 
+        gate_insample = insample_y if gate_insample is None else gate_insample
         # Compute the gate logits. Shape: [batch, num_experts]
-        gate_logits: torch.Tensor = self.gate(insample_y)
+        gate_logits: torch.Tensor = self.gate(gate_insample)
 
         # original logits
         original_gate_logits = gate_logits.clone()

@@ -11,7 +11,7 @@ class GateValuesCollectorCallback(pl.Callback):
     A PyTorch Lightning callback to collect gate values per epoch
     and analyze expert specialization in a mixture-of-experts model.
     """
-    def __init__(self, top_k: int = 2, nr_layers: int = 3) -> None:
+    def __init__(self, top_k: int = 1, nr_layers: int = 3) -> None:
         super().__init__()
         self._gate_values = []  # Stores gate values for all layers
         self.top_k = top_k
