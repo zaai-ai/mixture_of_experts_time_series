@@ -110,7 +110,7 @@ class SparsePooling(BasePooling):
         super(SparsePooling, self).__init__(experts, gate, out_features, device, unpack, return_soft_gates)
         self.k: int = k
 
-        self.bias: nn.Parameter = nn.Parameter(torch.zeros(len(experts))) if bias else None
+        self.bias: nn.Parameter = nn.Parameter(torch.rand(len(experts))) if bias else None
 
     def forward(self, windows_batch: dict, gate_insample: torch.Tensor = None) -> torch.Tensor:
 
@@ -125,21 +125,24 @@ class SparsePooling(BasePooling):
         original_gate_logits = gate_logits.clone()
 
         if self.bias is not None:
-            gate_logits += self.bias
+            gate_probs = torch.sigmoid(gate_logits)
+            gate_logits = gate_logits + self.bias
+        
 
         # Select the top-k experts for each sample.
         # topk_values & topk_indices have shape: [batch, k]
-        topk_values, topk_indices = torch.topk(gate_logits, self.k, dim=1)
+        topk_values, topk_indices = torch.topk(gate_logits, self.k, dim=-1)
 
         # print(f"topk_indices: {topk_indices}")
 
         if self.bias is not None:
-            topk_original_values = torch.gather(original_gate_logits, 1, topk_indices)
+            gate_probs = gate_probs.gather(-1, topk_indices)
+            gate_probs = gate_probs / (gate_probs.sum(dim=-1, keepdim=True))
         else:
             topk_original_values = topk_values
 
-        # Compute probabilities for the top-k experts using softmax.
-        gate_probs: torch.Tensor = self.softmax(topk_original_values)
+            # Compute probabilities for the top-k experts using softmax.
+            gate_probs: torch.Tensor = self.softmax(topk_original_values)
 
         # Initialize the weighted sum output.
         weighted_sum = torch.zeros(

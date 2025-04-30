@@ -403,7 +403,7 @@ class NBeatsMoe(BaseWindows):
         top_k: int = 1,
         pre_blocks: Optional[nn.ModuleList] = None,
         share_experts: bool = False,
-        bias_load_balancer: bool = True,
+        bias_load_balancer: bool = False,
         auxiliary_loss: bool = False,
         return_gate_logits: bool = True,
         drop_last_loader: bool = False,
@@ -641,7 +641,7 @@ class NBeatsMoe(BaseWindows):
                     prog_bar=True,
                     on_epoch=True,
                 )
-                loss += lb_loss * 10000
+                loss = loss + lb_loss * 10000
 
         if torch.isnan(loss):
             print("Model Parameters", self.hparams)
