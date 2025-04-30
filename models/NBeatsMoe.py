@@ -378,7 +378,7 @@ class NBeatsMoe(BaseWindows):
         n_harmonics: int = 2,
         n_polynomials: int = 2,
         stack_types: list = ["identity", "trend", "seasonality"],
-        n_blocks: list = [1, 1, 1],
+        n_blocks: list = [3, 3, 3],
         mlp_units: list = 3 * [[128, 128]],
         dropout_prob_theta: float = 0.0,
         activation: str = "ReLU",
@@ -400,11 +400,11 @@ class NBeatsMoe(BaseWindows):
         random_seed: int = 1,
         gate_type: str = "linear",
         nr_experts: int = 4,
-        top_k: int = 1,
+        top_k: int = 2,
         pre_blocks: Optional[nn.ModuleList] = None,
         share_experts: bool = False,
         bias_load_balancer: bool = False,
-        auxiliary_loss: bool = False,
+        auxiliary_loss: bool = True,
         return_gate_logits: bool = True,
         drop_last_loader: bool = False,
         store_all_gate_logits: bool = True,
@@ -636,12 +636,12 @@ class NBeatsMoe(BaseWindows):
 
                 self.log(
                     "lb_loss",
-                    lb_loss.detach().item() * 10000,
+                    lb_loss.detach().item() * 100000,
                     batch_size=outsample_y.size(0),
                     prog_bar=True,
                     on_epoch=True,
                 )
-                loss = loss + lb_loss * 10000
+                loss = loss + lb_loss * 100000
 
         if torch.isnan(loss):
             print("Model Parameters", self.hparams)
