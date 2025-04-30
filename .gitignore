@@ -170,3 +170,6 @@ results.csv
 checkpoints/
 callback_images/
 *.npy
+m3/
+m4/
+lightning_logs/
