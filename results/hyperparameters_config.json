@@ -1,0 +1,1514 @@
+{
+    "nbeats_gluonts_m1_quarterly_Q_2": {
+        "input_size": 4,
+        "mlp_units": [
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ]
+        ],
+        "n_blocks": [
+            9,
+            9,
+            9
+        ],
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 10000,
+        "batch_size": 64,
+        "windows_batch_size": 256,
+        "random_seed": 1,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoe_gluonts_m1_quarterly_Q_2": {
+        "input_size": 4,
+        "mlp_units": [
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ]
+        ],
+        "n_blocks": [
+            1,
+            1,
+            1
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 2500,
+        "batch_size": 64,
+        "windows_batch_size": 1024,
+        "random_seed": 3,
+        "nr_experts": 8,
+        "top_k": 4,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoeshared_gluonts_m1_quarterly_Q_2": {
+        "input_size": 4,
+        "mlp_units": [
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ]
+        ],
+        "n_blocks": [
+            3,
+            3,
+            3
+        ],
+        "share_experts": true,
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 2500,
+        "batch_size": 64,
+        "windows_batch_size": 1024,
+        "random_seed": 20,
+        "nr_experts": 4,
+        "top_k": 2,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeatsstackmoe_gluonts_m1_quarterly_Q_2": {
+        "input_size": 4,
+        "mlp_units": [
+            [
+                64,
+                64
+            ],
+            [
+                64,
+                64
+            ],
+            [
+                64,
+                64
+            ]
+        ],
+        "scaler_type": "identity",
+        "max_steps": 2500,
+        "shared_weights": true,
+        "n_blocks": [
+            1,
+            1,
+            1
+        ],
+        "batch_size": 32,
+        "windows_batch_size": 512,
+        "random_seed": 18,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeats_gluonts_m1_monthly_M_8": {
+        "input_size": 12,
+        "mlp_units": [
+            [
+                16,
+                16
+            ],
+            [
+                16,
+                16
+            ],
+            [
+                16,
+                16
+            ]
+        ],
+        "n_blocks": [
+            9,
+            9,
+            9
+        ],
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 2500,
+        "batch_size": 32,
+        "windows_batch_size": 256,
+        "random_seed": 9,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoe_gluonts_m1_monthly_M_8": {
+        "input_size": 12,
+        "mlp_units": [
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ]
+        ],
+        "n_blocks": [
+            3,
+            3,
+            3
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 2500,
+        "batch_size": 32,
+        "windows_batch_size": 1024,
+        "random_seed": 18,
+        "nr_experts": 8,
+        "top_k": 2,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoeshared_gluonts_m1_monthly_M_8": {
+        "input_size": 12,
+        "mlp_units": [
+            [
+                4,
+                4
+            ],
+            [
+                4,
+                4
+            ],
+            [
+                4,
+                4
+            ]
+        ],
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "share_experts": true,
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 5000,
+        "batch_size": 32,
+        "windows_batch_size": 512,
+        "random_seed": 12,
+        "nr_experts": 8,
+        "top_k": 4,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeatsstackmoe_gluonts_m1_monthly_M_8": {
+        "input_size": 12,
+        "mlp_units": [
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ]
+        ],
+        "scaler_type": "identity",
+        "max_steps": 1000,
+        "shared_weights": true,
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "batch_size": 32,
+        "windows_batch_size": 128,
+        "random_seed": 4,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeats_gluonts_m1_yearly_Y_2": {
+        "input_size": 3,
+        "mlp_units": [
+            [
+                512,
+                512
+            ],
+            [
+                512,
+                512
+            ],
+            [
+                512,
+                512
+            ]
+        ],
+        "n_blocks": [
+            9,
+            9,
+            9
+        ],
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 10000,
+        "batch_size": 32,
+        "windows_batch_size": 512,
+        "random_seed": 5,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoe_gluonts_m1_yearly_Y_2": {
+        "input_size": 3,
+        "mlp_units": [
+            [
+                4,
+                4
+            ],
+            [
+                4,
+                4
+            ],
+            [
+                4,
+                4
+            ]
+        ],
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 2500,
+        "batch_size": 128,
+        "windows_batch_size": 128,
+        "random_seed": 20,
+        "nr_experts": 8,
+        "top_k": 2,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoeshared_gluonts_m1_yearly_Y_2": {
+        "input_size": 3,
+        "mlp_units": [
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ]
+        ],
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "share_experts": true,
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 10000,
+        "batch_size": 128,
+        "windows_batch_size": 128,
+        "random_seed": 11,
+        "nr_experts": 2,
+        "top_k": 1,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeatsstackmoe_gluonts_m1_yearly_Y_2": {
+        "input_size": 3,
+        "mlp_units": [
+            [
+                4,
+                4
+            ],
+            [
+                4,
+                4
+            ],
+            [
+                4,
+                4
+            ]
+        ],
+        "scaler_type": "identity",
+        "max_steps": 2500,
+        "shared_weights": true,
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "batch_size": 64,
+        "windows_batch_size": 512,
+        "random_seed": 18,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeats_gluonts_tourism_monthly_M_18": {
+        "input_size": 24,
+        "mlp_units": [
+            [
+                256,
+                256
+            ],
+            [
+                256,
+                256
+            ],
+            [
+                256,
+                256
+            ]
+        ],
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 1000,
+        "batch_size": 64,
+        "windows_batch_size": 1024,
+        "random_seed": 19,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoe_gluonts_tourism_monthly_M_18": {
+        "input_size": 24,
+        "mlp_units": [
+            [
+                64,
+                64
+            ],
+            [
+                64,
+                64
+            ],
+            [
+                64,
+                64
+            ]
+        ],
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 10000,
+        "batch_size": 64,
+        "windows_batch_size": 1024,
+        "random_seed": 7,
+        "nr_experts": 4,
+        "top_k": 4,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoeshared_gluonts_tourism_monthly_M_18": {
+        "input_size": 24,
+        "mlp_units": [
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ]
+        ],
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "share_experts": true,
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 10000,
+        "batch_size": 64,
+        "windows_batch_size": 512,
+        "random_seed": 20,
+        "nr_experts": 8,
+        "top_k": 8,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeatsstackmoe_gluonts_tourism_monthly_M_18": {
+        "input_size": 24,
+        "mlp_units": [
+            [
+                1024,
+                1024
+            ],
+            [
+                1024,
+                1024
+            ],
+            [
+                1024,
+                1024
+            ]
+        ],
+        "scaler_type": "identity",
+        "max_steps": 10000,
+        "shared_weights": true,
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "batch_size": 128,
+        "windows_batch_size": 512,
+        "random_seed": 10,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeats_gluonts_tourism_quarterly_Q_8": {
+        "input_size": 4,
+        "mlp_units": [
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ]
+        ],
+        "n_blocks": [
+            9,
+            9,
+            9
+        ],
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 5000,
+        "batch_size": 32,
+        "windows_batch_size": 512,
+        "random_seed": 2,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoe_gluonts_tourism_quarterly_Q_8": {
+        "input_size": 4,
+        "mlp_units": [
+            [
+                64,
+                64
+            ],
+            [
+                64,
+                64
+            ],
+            [
+                64,
+                64
+            ]
+        ],
+        "n_blocks": [
+            9,
+            9,
+            9
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 10000,
+        "batch_size": 32,
+        "windows_batch_size": 128,
+        "random_seed": 3,
+        "nr_experts": 4,
+        "top_k": 2,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoeshared_gluonts_tourism_quarterly_Q_8": {
+        "input_size": 4,
+        "mlp_units": [
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ]
+        ],
+        "n_blocks": [
+            9,
+            9,
+            9
+        ],
+        "share_experts": true,
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 5000,
+        "batch_size": 32,
+        "windows_batch_size": 512,
+        "random_seed": 11,
+        "nr_experts": 8,
+        "top_k": 2,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeatsstackmoe_gluonts_tourism_quarterly_Q_8": {
+        "input_size": 4,
+        "mlp_units": [
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ]
+        ],
+        "scaler_type": "identity",
+        "max_steps": 10000,
+        "shared_weights": true,
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "batch_size": 256,
+        "windows_batch_size": 128,
+        "random_seed": 7,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeats_gluonts_tourism_yearly_Y_4": {
+        "input_size": 3,
+        "mlp_units": [
+            [
+                512,
+                512
+            ],
+            [
+                512,
+                512
+            ],
+            [
+                512,
+                512
+            ]
+        ],
+        "n_blocks": [
+            1,
+            1,
+            1
+        ],
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 1000,
+        "batch_size": 256,
+        "windows_batch_size": 256,
+        "random_seed": 11,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoe_gluonts_tourism_yearly_Y_4": {
+        "input_size": 3,
+        "mlp_units": [
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ]
+        ],
+        "n_blocks": [
+            3,
+            3,
+            3
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 2500,
+        "batch_size": 256,
+        "windows_batch_size": 1024,
+        "random_seed": 5,
+        "nr_experts": 8,
+        "top_k": 2,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoeshared_gluonts_tourism_yearly_Y_4": {
+        "input_size": 3,
+        "mlp_units": [
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ]
+        ],
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "share_experts": true,
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 5000,
+        "batch_size": 256,
+        "windows_batch_size": 256,
+        "random_seed": 14,
+        "nr_experts": 8,
+        "top_k": 1,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeatsstackmoe_gluonts_tourism_yearly_Y_4": {
+        "input_size": 3,
+        "mlp_units": [
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ]
+        ],
+        "scaler_type": "identity",
+        "max_steps": 1000,
+        "shared_weights": true,
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "batch_size": 128,
+        "windows_batch_size": 1024,
+        "random_seed": 8,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeats_m3_Monthly_18": {
+        "input_size": 36,
+        "mlp_units": [
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ]
+        ],
+        "n_blocks": [
+            9,
+            9,
+            9
+        ],
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 2500,
+        "batch_size": 128,
+        "windows_batch_size": 256,
+        "random_seed": 8,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoe_m3_Monthly_18": {
+        "mlp_units": [
+            [
+                32,
+                32
+            ],
+            [
+                32,
+                32
+            ],
+            [
+                32,
+                32
+            ]
+        ],
+        "n_blocks": [
+            9,
+            9,
+            9
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 2500,
+        "batch_size": 256,
+        "windows_batch_size": 512,
+        "random_seed": 20,
+        "nr_experts": 4,
+        "top_k": 4,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true,
+        "input_size": 18,
+        "step_size": 1
+    },
+    "nbeatsmoeshared_m3_Monthly_18": {
+        "mlp_units": [
+            [
+                256,
+                256
+            ],
+            [
+                256,
+                256
+            ],
+            [
+                256,
+                256
+            ]
+        ],
+        "n_blocks": [
+            1,
+            1,
+            1
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 1000,
+        "batch_size": 256,
+        "windows_batch_size": 1024,
+        "random_seed": 12,
+        "nr_experts": 2,
+        "top_k": 2,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true,
+        "input_size": 36,
+        "share_experts": true,
+        "step_size": 1
+    },
+    "nbeatsstackmoe_m3_Monthly_18": {
+        "input_size": 54,
+        "mlp_units": [
+            [
+                256,
+                256
+            ],
+            [
+                256,
+                256
+            ],
+            [
+                256,
+                256
+            ]
+        ],
+        "scaler_type": "identity",
+        "max_steps": 1000,
+        "shared_weights": true,
+        "n_blocks": [
+            9,
+            9,
+            9
+        ],
+        "batch_size": 256,
+        "windows_batch_size": 512,
+        "random_seed": 20,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeats_m3_Quarterly_8": {
+        "input_size": 8,
+        "mlp_units": [
+            [
+                256,
+                256
+            ],
+            [
+                256,
+                256
+            ],
+            [
+                256,
+                256
+            ]
+        ],
+        "n_blocks": [
+            3,
+            3,
+            3
+        ],
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 1000,
+        "batch_size": 32,
+        "windows_batch_size": 256,
+        "random_seed": 4,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoe_m3_Quarterly_8": {
+        "mlp_units": [
+            [
+                4,
+                4
+            ],
+            [
+                4,
+                4
+            ],
+            [
+                4,
+                4
+            ]
+        ],
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 5000,
+        "batch_size": 128,
+        "windows_batch_size": 1024,
+        "random_seed": 6,
+        "nr_experts": 8,
+        "top_k": 8,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true,
+        "input_size": 8,
+        "step_size": 1
+    },
+    "nbeatsmoeshared_m3_Quarterly_8": {
+        "mlp_units": [
+            [
+                32,
+                32
+            ],
+            [
+                32,
+                32
+            ],
+            [
+                32,
+                32
+            ]
+        ],
+        "n_blocks": [
+            3,
+            3,
+            3
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 10000,
+        "batch_size": 32,
+        "windows_batch_size": 512,
+        "random_seed": 7,
+        "nr_experts": 2,
+        "top_k": 1,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true,
+        "input_size": 16,
+        "share_experts": true,
+        "step_size": 1
+    },
+    "nbeatsstackmoe_m3_Quarterly_8": {
+        "input_size": 8,
+        "mlp_units": [
+            [
+                32,
+                32
+            ],
+            [
+                32,
+                32
+            ],
+            [
+                32,
+                32
+            ]
+        ],
+        "scaler_type": "identity",
+        "max_steps": 2500,
+        "shared_weights": true,
+        "n_blocks": [
+            9,
+            9,
+            9
+        ],
+        "batch_size": 128,
+        "windows_batch_size": 1024,
+        "random_seed": 12,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeats_m3_Yearly_6": {
+        "input_size": 6,
+        "mlp_units": [
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ]
+        ],
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 5000,
+        "batch_size": 256,
+        "windows_batch_size": 256,
+        "random_seed": 7,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoe_m3_Yearly_6": {
+        "mlp_units": [
+            [
+                4,
+                4
+            ],
+            [
+                4,
+                4
+            ],
+            [
+                4,
+                4
+            ]
+        ],
+        "n_blocks": [
+            1,
+            1,
+            1
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 1000,
+        "batch_size": 128,
+        "windows_batch_size": 512,
+        "random_seed": 9,
+        "nr_experts": 8,
+        "top_k": 1,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true,
+        "input_size": 6,
+        "step_size": 1
+    },
+    "nbeatsmoeshared_m3_Yearly_6": {
+        "mlp_units": [
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ]
+        ],
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 2500,
+        "batch_size": 128,
+        "windows_batch_size": 128,
+        "random_seed": 16,
+        "nr_experts": 8,
+        "top_k": 2,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true,
+        "input_size": 6,
+        "share_experts": true,
+        "step_size": 1
+    },
+    "nbeatsstackmoe_m3_Yearly_6": {
+        "input_size": 6,
+        "mlp_units": [
+            [
+                16,
+                16
+            ],
+            [
+                16,
+                16
+            ],
+            [
+                16,
+                16
+            ]
+        ],
+        "scaler_type": "identity",
+        "max_steps": 10000,
+        "shared_weights": true,
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "batch_size": 32,
+        "windows_batch_size": 1024,
+        "random_seed": 10,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeats_m4_Monthly_18": {
+        "input_size": 36,
+        "mlp_units": [
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ]
+        ],
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 5000,
+        "batch_size": 64,
+        "windows_batch_size": 512,
+        "random_seed": 13,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoe_m4_Monthly_18": {
+        "mlp_units": [
+            [
+                32,
+                32
+            ],
+            [
+                32,
+                32
+            ],
+            [
+                32,
+                32
+            ]
+        ],
+        "n_blocks": [
+            1,
+            1,
+            1
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 10000,
+        "batch_size": 256,
+        "windows_batch_size": 512,
+        "random_seed": 20,
+        "nr_experts": 8,
+        "top_k": 2,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true,
+        "input_size": 54,
+        "step_size": 1
+    },
+    "nbeatsmoeshared_m4_Monthly_18": {
+        "mlp_units": [
+            [
+                64,
+                64
+            ],
+            [
+                64,
+                64
+            ],
+            [
+                64,
+                64
+            ]
+        ],
+        "n_blocks": [
+            1,
+            1,
+            1
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 5000,
+        "batch_size": 32,
+        "windows_batch_size": 256,
+        "random_seed": 20,
+        "nr_experts": 8,
+        "top_k": 8,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true,
+        "input_size": 36,
+        "share_experts": true,
+        "step_size": 18
+    },
+    "nbeatsstackmoe_m4_Monthly_18": {
+        "input_size": 54,
+        "mlp_units": [
+            [
+                1024,
+                1024
+            ],
+            [
+                1024,
+                1024
+            ],
+            [
+                1024,
+                1024
+            ]
+        ],
+        "scaler_type": "identity",
+        "max_steps": 10000,
+        "shared_weights": true,
+        "n_blocks": [
+            9,
+            9,
+            9
+        ],
+        "batch_size": 32,
+        "windows_batch_size": 1024,
+        "random_seed": 13,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeats_m4_Quarterly_8": {
+        "input_size": 40,
+        "mlp_units": [
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ],
+            [
+                128,
+                128
+            ]
+        ],
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 2500,
+        "batch_size": 32,
+        "windows_batch_size": 512,
+        "random_seed": 20,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoe_m4_Quarterly_8": {
+        "mlp_units": [
+            [
+                64,
+                64
+            ],
+            [
+                64,
+                64
+            ],
+            [
+                64,
+                64
+            ]
+        ],
+        "n_blocks": [
+            9,
+            9,
+            9
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 10000,
+        "batch_size": 128,
+        "windows_batch_size": 128,
+        "random_seed": 14,
+        "nr_experts": 8,
+        "top_k": 8,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true,
+        "input_size": 16,
+        "step_size": 1
+    },
+    "nbeatsmoeshared_m4_Quarterly_8": {
+        "mlp_units": [
+            [
+                512,
+                512
+            ],
+            [
+                512,
+                512
+            ],
+            [
+                512,
+                512
+            ]
+        ],
+        "n_blocks": [
+            3,
+            3,
+            3
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 10000,
+        "batch_size": 128,
+        "windows_batch_size": 512,
+        "random_seed": 14,
+        "nr_experts": 8,
+        "top_k": 1,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true,
+        "input_size": 32,
+        "share_experts": true,
+        "step_size": 1
+    },
+    "nbeatsstackmoe_m4_Quarterly_8": {
+        "input_size": 16,
+        "mlp_units": [
+            [
+                256,
+                256
+            ],
+            [
+                256,
+                256
+            ],
+            [
+                256,
+                256
+            ]
+        ],
+        "scaler_type": "identity",
+        "max_steps": 5000,
+        "shared_weights": true,
+        "n_blocks": [
+            9,
+            9,
+            9
+        ],
+        "batch_size": 64,
+        "windows_batch_size": 512,
+        "random_seed": 13,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    },
+    "nbeats_m4_Yearly_6": {
+        "input_size": 18,
+        "mlp_units": [
+            [
+                512,
+                512
+            ],
+            [
+                512,
+                512
+            ],
+            [
+                512,
+                512
+            ]
+        ],
+        "n_blocks": [
+            6,
+            6,
+            6
+        ],
+        "shared_weights": true,
+        "scaler_type": "identity",
+        "max_steps": 5000,
+        "batch_size": 256,
+        "windows_batch_size": 512,
+        "random_seed": 10,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true
+    },
+    "nbeatsmoe_m4_Yearly_6": {
+        "mlp_units": [
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ],
+            [
+                8,
+                8
+            ]
+        ],
+        "n_blocks": [
+            1,
+            1,
+            1
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 10000,
+        "batch_size": 128,
+        "windows_batch_size": 128,
+        "random_seed": 9,
+        "nr_experts": 2,
+        "top_k": 2,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true,
+        "input_size": 12,
+        "step_size": 1
+    },
+    "nbeatsmoeshared_m4_Yearly_6": {
+        "mlp_units": [
+            [
+                256,
+                256
+            ],
+            [
+                256,
+                256
+            ],
+            [
+                256,
+                256
+            ]
+        ],
+        "n_blocks": [
+            3,
+            3,
+            3
+        ],
+        "scaler_type": "identity",
+        "shared_weights": true,
+        "max_steps": 2500,
+        "batch_size": 256,
+        "windows_batch_size": 128,
+        "random_seed": 17,
+        "nr_experts": 8,
+        "top_k": 2,
+        "early_stop_patience_steps": 20,
+        "start_padding_enabled": true,
+        "input_size": 30,
+        "share_experts": true,
+        "step_size": 1
+    },
+    "nbeatsstackmoe_m4_Yearly_6": {
+        "input_size": 18,
+        "mlp_units": [
+            [
+                512,
+                512
+            ],
+            [
+                512,
+                512
+            ],
+            [
+                512,
+                512
+            ]
+        ],
+        "scaler_type": "identity",
+        "max_steps": 5000,
+        "shared_weights": true,
+        "n_blocks": [
+            1,
+            1,
+            1
+        ],
+        "batch_size": 128,
+        "windows_batch_size": 512,
+        "random_seed": 15,
+        "early_stop_patience_steps": 10,
+        "start_padding_enabled": true
+    }
+}
