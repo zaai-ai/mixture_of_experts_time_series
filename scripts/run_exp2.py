@@ -17,20 +17,28 @@ from neuralforecast.models import NBEATS
 
 # df, horizon, n_lags, freq_str, freq_int = load_dataset('gluonts_m1_monthly', {})
 # df, horizon, n_lags, freq_str, freq_int = load_dataset('gluonts_tourism_monthly', {})
-# df = load_dataset('m3', {'directory': '.', 'group': 'Monthly'})
-df = load_dataset('m4', {'directory': '.', 'group': 'Monthly'})
+df = load_dataset('m3', {'directory': '.', 'group': 'Monthly'})
+# df = load_dataset('m4', {'directory': '.', 'group': 'Monthly'})
 horizon = 36
 n_lags = 18
-freq_int=12
-# freq_str='ME'
-freq_str=12
+freq_int = 12
+freq_str='ME'
+# freq_str = 12
 
 train, test = train_test_split(df, horizon)
 
 models = [
-    NBeatsMoe(h=horizon, input_size=n_lags, max_steps=1000, accelerator='mps'),
+    NBeatsMoe(h=horizon,
+              input_size=n_lags,
+              mlp_units=3 * [[256, 256]],
+              max_steps=1000,
+              accelerator='mps'),
     NBEATS(h=horizon, input_size=n_lags, max_steps=1000, accelerator='mps'),
-    NBeatsStackMoe(h=horizon, input_size=n_lags, max_steps=1000, accelerator='mps'),
+    NBeatsStackMoe(h=horizon,
+                   input_size=n_lags,
+                   mlp_units=3 * [[128, 128]],
+                   max_steps=1000,
+                   accelerator='mps'),
 ]
 
 seasonal_mase = partial(mase, seasonality=freq_int)

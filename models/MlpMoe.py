@@ -3,6 +3,7 @@ import torch.nn as nn
 
 from neuralforecast.common._base_windows import BaseWindows
 from neuralforecast.losses.pytorch import MAE
+from neuralforecast.models import NBEATS
 
 from .pooling_methods import SparsePooling
 

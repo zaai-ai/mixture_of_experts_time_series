@@ -1,4 +1,3 @@
-
 from typing import Tuple, Optional
 
 import numpy as np
@@ -10,8 +9,8 @@ import optuna
 from neuralforecast.losses.pytorch import MAE
 from neuralforecast.common._base_windows import BaseWindows
 
-
 from .pooling_methods import SparsePooling, SharedExpertPooling
+
 
 class IdentityBasis(nn.Module):
     def __init__(self, backcast_size: int, forecast_size: int, out_features: int = 1):
@@ -22,18 +21,18 @@ class IdentityBasis(nn.Module):
 
     def forward(self, theta: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         backcast = theta[:, : self.backcast_size]
-        forecast = theta[:, self.backcast_size :]
+        forecast = theta[:, self.backcast_size:]
         forecast = forecast.reshape(len(forecast), -1, self.out_features)
         return backcast, forecast
 
 
 class TrendBasis(nn.Module):
     def __init__(
-        self,
-        degree_of_polynomial: int,
-        backcast_size: int,
-        forecast_size: int,
-        out_features: int = 1,
+            self,
+            degree_of_polynomial: int,
+            backcast_size: int,
+            forecast_size: int,
+            out_features: int = 1,
     ):
         super().__init__()
         self.out_features = out_features
@@ -81,11 +80,11 @@ class TrendBasis(nn.Module):
 
 class SeasonalityBasis(nn.Module):
     def __init__(
-        self,
-        harmonics: int,
-        backcast_size: int,
-        forecast_size: int,
-        out_features: int = 1,
+            self,
+            harmonics: int,
+            backcast_size: int,
+            forecast_size: int,
+            out_features: int = 1,
     ):
         super().__init__()
         self.out_features = out_features
@@ -95,16 +94,16 @@ class SeasonalityBasis(nn.Module):
             / harmonics,
         )[None, :]
         backcast_grid = (
-            -2
-            * np.pi
-            * (np.arange(backcast_size, dtype=float)[:, None] / forecast_size)
-            * frequency
+                -2
+                * np.pi
+                * (np.arange(backcast_size, dtype=float)[:, None] / forecast_size)
+                * frequency
         )
         forecast_grid = (
-            2
-            * np.pi
-            * (np.arange(forecast_size, dtype=float)[:, None] / forecast_size)
-            * frequency
+                2
+                * np.pi
+                * (np.arange(forecast_size, dtype=float)[:, None] / forecast_size)
+                * frequency
         )
 
         backcast_cos_template = torch.tensor(
@@ -139,6 +138,7 @@ class SeasonalityBasis(nn.Module):
         forecast = torch.einsum("bpq,pt->btq", forecast_theta, self.forecast_basis)
         return backcast, forecast
 
+
 # %% ../../nbs/models.nbeats.ipynb 8
 ACTIVATIONS = ["ReLU", "Softplus", "Tanh", "SELU", "LeakyReLU", "PReLU", "Sigmoid"]
 
@@ -149,21 +149,21 @@ class NBEATSMoEBlock(nn.Module):
     """
 
     def __init__(
-        self,
-        input_size: int,
-        n_theta: int,
-        mlp_units: list,
-        basis: nn.Module,
-        dropout_prob: float,
-        activation: str,
-        gate_type: str = "linear",
-        nr_experts: int = 8,
-        top_k: int = 2,
-        pre_experts: Optional[nn.ModuleList] = None,
-        return_gate_logits: bool = False,
-        share_experts: bool = False,
-        bias_load_balancer: bool = False,
-        scale_expert_complexity: bool = False,
+            self,
+            input_size: int,
+            n_theta: int,
+            mlp_units: list,
+            basis: nn.Module,
+            dropout_prob: float,
+            activation: str,
+            gate_type: str = "linear",
+            nr_experts: int = 8,
+            top_k: int = 2,
+            pre_experts: Optional[nn.ModuleList] = None,
+            return_gate_logits: bool = False,
+            share_experts: bool = False,
+            bias_load_balancer: bool = False,
+            scale_expert_complexity: bool = False,
     ):
         """ """
         super().__init__()
@@ -187,9 +187,9 @@ class NBEATSMoEBlock(nn.Module):
         elif gate_type == "mlp":
             self.gate = nn.Sequential(
                 nn.LayerNorm(input_size),
-                nn.Linear(in_features=input_size, out_features=input_size*2),
+                nn.Linear(in_features=input_size, out_features=input_size * 2),
                 activ,
-                nn.Linear(in_features=input_size*2, out_features=self.nr_experts),
+                nn.Linear(in_features=input_size * 2, out_features=self.nr_experts),
             )
         elif gate_type == "conv1d-flatten":
             self.gate = nn.Sequential(
@@ -203,28 +203,28 @@ class NBEATSMoEBlock(nn.Module):
                 nn.LayerNorm(input_size),
                 nn.Unflatten(1, (1, input_size)),
                 # conv block (→ [batch, 32, input_size])
-                nn.Conv1d(in_channels=1,  out_channels=nr_experts*8, kernel_size=3, padding=1),
+                nn.Conv1d(in_channels=1, out_channels=nr_experts * 8, kernel_size=3, padding=1),
                 nn.ReLU(),
-                nn.Conv1d(in_channels=nr_experts*8, out_channels=nr_experts*16, kernel_size=3, padding=1),
+                nn.Conv1d(in_channels=nr_experts * 8, out_channels=nr_experts * 16, kernel_size=3, padding=1),
                 nn.ReLU(),
                 # global pooling → [batch, 32, 1]
                 nn.AdaptiveAvgPool1d(1),
                 # project to nr_experts → [batch, nr_experts, 1]
-                nn.Conv1d(in_channels=nr_experts*16, out_channels=nr_experts, kernel_size=1),
+                nn.Conv1d(in_channels=nr_experts * 16, out_channels=nr_experts, kernel_size=1),
                 # flatten away the length dim → [batch, nr_experts]
                 nn.Flatten(1),
             )
-        elif gate_type == "conv1d-nopooling": # TODO: test
+        elif gate_type == "conv1d-nopooling":  # TODO: test
             self.gate = nn.Sequential(
                 nn.LayerNorm(input_size),
                 nn.Unflatten(1, (1, input_size)),
                 # conv block (→ [batch, 32, input_size])
-                nn.Conv1d(in_channels=1,  out_channels=nr_experts*8, kernel_size=3, padding=1),
+                nn.Conv1d(in_channels=1, out_channels=nr_experts * 8, kernel_size=3, padding=1),
                 nn.ReLU(),
-                nn.Conv1d(in_channels=nr_experts*8, out_channels=nr_experts*16, kernel_size=3, padding=1),
+                nn.Conv1d(in_channels=nr_experts * 8, out_channels=nr_experts * 16, kernel_size=3, padding=1),
                 nn.ReLU(),
                 # project to nr_experts → [batch, nr_experts, 1]
-                nn.Conv1d(in_channels=nr_experts*16, out_channels=nr_experts, kernel_size=1),
+                nn.Conv1d(in_channels=nr_experts * 16, out_channels=nr_experts, kernel_size=1),
                 # flatten away the length dim → [batch, nr_experts]
                 nn.Flatten(1),
             )
@@ -250,9 +250,8 @@ class NBEATSMoEBlock(nn.Module):
 
             if scale_expert_complexity:
                 mlp_units = [
-                    [int(np.ceil(layer[0] / (i+1))), int(np.ceil(layer[1]/(i+1)))] for layer in mlp_units
+                    [int(np.ceil(layer[0] / (i + 1))), int(np.ceil(layer[1] / (i + 1)))] for layer in mlp_units
                 ]
-
 
             hidden_layers = [
                 nn.Linear(in_features=input_size, out_features=mlp_units[0][0])
@@ -276,7 +275,7 @@ class NBEATSMoEBlock(nn.Module):
 
         if not self.share_experts:
             self.pooling = SparsePooling(
-                experts=self.experts, gate=self.gate, out_features=n_theta, k=self.k, 
+                experts=self.experts, gate=self.gate, out_features=n_theta, k=self.k,
                 unpack=False, return_soft_gates=True,
                 bias=self.bias_load_balancer,
             )
@@ -284,12 +283,12 @@ class NBEATSMoEBlock(nn.Module):
             self.pooling = SharedExpertPooling(
                 experts=self.experts[1:],
                 sparse_gate=self.gate,
-                gate= nn.Linear(
+                gate=nn.Linear(
                     in_features=input_size,
                     out_features=2
                 ),
                 shared_expert=self.experts[0],
-                out_features=n_theta, k=self.k, 
+                out_features=n_theta, k=self.k,
                 unpack=False, return_soft_gates=True,
                 bias=self.bias_load_balancer,
             )
@@ -302,13 +301,14 @@ class NBEATSMoEBlock(nn.Module):
 
     def forward(self, insample_y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         theta, gate_logits = self.pooling(insample_y)
-        
+
         backcast, forecast = self.basis(theta)
 
         if self.return_gate_logits:
-             return backcast, forecast, gate_logits
+            return backcast, forecast, gate_logits
 
         return backcast, forecast
+
 
 # %% ../../nbs/models.nbeats.ipynb 9
 class NBeatsMoe(BaseWindows):
@@ -368,48 +368,48 @@ class NBeatsMoe(BaseWindows):
     EXOGENOUS_STAT = False
 
     def __init__(
-        self,
-        h,
-        input_size,
-        n_harmonics: int = 2,
-        n_polynomials: int = 2,
-        stack_types: list = ["identity", "trend", "seasonality"],
-        n_blocks: list = [1, 1, 1],
-        mlp_units: list = 3 * [[128, 128]],
-        dropout_prob_theta: float = 0.0,
-        activation: str = "ReLU",
-        shared_weights: bool = True,
-        loss=MAE(),
-        valid_loss=None,
-        max_steps: int = 1000,
-        learning_rate: float = 1e-3,
-        num_lr_decays: int = 3,
-        early_stop_patience_steps: int = -1,
-        val_check_steps: int = 100,
-        batch_size: int = 32,
-        valid_batch_size: Optional[int] = None,
-        windows_batch_size: int = 1024,
-        inference_windows_batch_size: int = -1,
-        start_padding_enabled=False,
-        step_size: int = 1,
-        scaler_type: str = "identity",
-        random_seed: int = 1,
-        gate_type: str = "linear",
-        nr_experts: int = 4,
-        top_k: int = 2,
-        pre_blocks: Optional[nn.ModuleList] = None,
-        share_experts: bool = False,
-        bias_load_balancer: bool = False,
-        return_gate_logits: bool = False,
-        drop_last_loader: bool = False,
-        store_all_gate_logits: bool = False,
-        scale_expert_complexity: bool = False,
-        optimizer=None,
-        optimizer_kwargs=None,
-        lr_scheduler=None,
-        lr_scheduler_kwargs=None,
-        dataloader_kwargs=None,
-        **trainer_kwargs,
+            self,
+            h,
+            input_size,
+            n_harmonics: int = 2,
+            n_polynomials: int = 2,
+            stack_types: list = ["identity", "trend", "seasonality"],
+            n_blocks: list = [1, 1, 1],
+            mlp_units: list = 3 * [[128, 128]],
+            dropout_prob_theta: float = 0.0,
+            activation: str = "ReLU",
+            shared_weights: bool = True,
+            loss=MAE(),
+            valid_loss=None,
+            max_steps: int = 1000,
+            learning_rate: float = 1e-3,
+            num_lr_decays: int = 3,
+            early_stop_patience_steps: int = -1,
+            val_check_steps: int = 100,
+            batch_size: int = 32,
+            valid_batch_size: Optional[int] = None,
+            windows_batch_size: int = 1024,
+            inference_windows_batch_size: int = -1,
+            start_padding_enabled=False,
+            step_size: int = 1,
+            scaler_type: str = "identity",
+            random_seed: int = 1,
+            gate_type: str = "linear",
+            nr_experts: int = 4,
+            top_k: int = 2,
+            pre_blocks: Optional[nn.ModuleList] = None,
+            share_experts: bool = False,
+            bias_load_balancer: bool = False,
+            return_gate_logits: bool = False,
+            drop_last_loader: bool = False,
+            store_all_gate_logits: bool = False,
+            scale_expert_complexity: bool = False,
+            optimizer=None,
+            optimizer_kwargs=None,
+            lr_scheduler=None,
+            lr_scheduler_kwargs=None,
+            dataloader_kwargs=None,
+            **trainer_kwargs,
     ):
 
         # Protect horizon collapsed seasonality and trend NBEATSx-i basis
@@ -447,10 +447,10 @@ class NBeatsMoe(BaseWindows):
         )
 
         if top_k > nr_experts:
-            raise optuna.TrialPruned(f"Check top_k={top_k} <= nr_experts={nr_experts}")# raise Exception(
+            raise optuna.TrialPruned(f"Check top_k={top_k} <= nr_experts={nr_experts}")  # raise Exception(
 
         self.nr_experts = nr_experts
-        self.top_k = top_k 
+        self.top_k = top_k
         self.return_gate_logits = return_gate_logits
         self._training = True
         self.store_all_gate_logits = store_all_gate_logits
@@ -481,17 +481,17 @@ class NBeatsMoe(BaseWindows):
         return super().predict_step(batch, batch_idx)
 
     def create_stack(
-        self,
-        stack_types,
-        n_blocks,
-        input_size,
-        h,
-        mlp_units,
-        dropout_prob_theta,
-        activation,
-        shared_weights,
-        n_polynomials,
-        n_harmonics,
+            self,
+            stack_types,
+            n_blocks,
+            input_size,
+            h,
+            mlp_units,
+            dropout_prob_theta,
+            activation,
+            shared_weights,
+            n_polynomials,
+            n_harmonics,
     ):
 
         block_list = []
@@ -504,9 +504,9 @@ class NBeatsMoe(BaseWindows):
                 else:
                     if stack_types[i] == "seasonality":
                         n_theta = (
-                            2
-                            * (self.loss.outputsize_multiplier + 1)
-                            * int(np.ceil(n_harmonics / 2 * h) - (n_harmonics - 1))
+                                2
+                                * (self.loss.outputsize_multiplier + 1)
+                                * int(np.ceil(n_harmonics / 2 * h) - (n_harmonics - 1))
                         )
                         basis = SeasonalityBasis(
                             harmonics=n_harmonics,
@@ -517,7 +517,7 @@ class NBeatsMoe(BaseWindows):
 
                     elif stack_types[i] == "trend":
                         n_theta = (self.loss.outputsize_multiplier + 1) * (
-                            n_polynomials + 1
+                                n_polynomials + 1
                         )
                         basis = TrendBasis(
                             degree_of_polynomial=n_polynomials,

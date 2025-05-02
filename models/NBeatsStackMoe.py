@@ -251,7 +251,7 @@ class NBeatsStackMoe(BaseWindows):
         n_polynomials: int = 2,
         stack_types: list = ["identity", "trend", "seasonality"],
         n_blocks: list = [1, 1, 1],
-        mlp_units: list = 3 * [[64, 64]],
+        mlp_units: list = 3 * [[128, 128]],
         dropout_prob_theta: float = 0.0,
         activation: str = "ReLU",
         shared_weights: bool = False,
