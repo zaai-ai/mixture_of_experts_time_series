@@ -272,6 +272,7 @@ class NBeatsStackMoe(BaseWindows):
         random_seed: int = 1,
         drop_last_loader: bool = False,
         optimizer=None,
+        store_all_gate_logits=True,
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
@@ -332,6 +333,15 @@ class NBeatsStackMoe(BaseWindows):
             nn.LayerNorm(input_size),
             nn.Linear(in_features=input_size, out_features=sum(n_blocks)),
         )
+        
+        self._training = True
+        self.store_all_gate_logits = store_all_gate_logits
+        self.all_gate_logits = []
+        self.all_inputs = []
+        
+    def predict_step(self, batch, batch_idx):
+        self._training = False
+        return super().predict_step(batch, batch_idx)
 
     def create_stack(
         self,
@@ -416,6 +426,10 @@ class NBeatsStackMoe(BaseWindows):
         # Gate
         gate = self.gate(insample_y)
         gate = F.softmax(gate, dim=-1)
+        
+        if not self._training and self.store_all_gate_logits:
+            self.all_gate_logits.append(gate)
+            self.all_inputs.append(insample_y)
 
         forecast = insample_y[:, -1:, None]  # Level with Naive1
         block_forecasts = [forecast.repeat(1, self.h, 1)]

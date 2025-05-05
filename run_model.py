@@ -69,7 +69,6 @@ def run_model_experiment(
     
     forecasts = fcst.predict(futr_df=Y_test_df)
 
-    
 
     # Extract forecast column (assumes column is named after model class)
     forecast_col = model_instance.__class__.__name__
@@ -116,6 +115,9 @@ def plot_forecasts(
     # Ensure forecasts has the 'unique_id', 'ds', and forecast_col columns
     forecasts = forecasts.reset_index(drop=False)
 
+    print(Y_train_df[Y_train_df['unique_id'] == Y_train_df['unique_id'].unique()[1383]])
+    print(Y_train_df[Y_train_df['unique_id'] == Y_train_df['unique_id'].unique()[62]])
+
     # Keep last 24 months from train before concatenating
     train_last_24 = Y_train_df.groupby('unique_id').tail(256)
 
@@ -127,7 +129,8 @@ def plot_forecasts(
     plt.figure(figsize=(plot_cfg.figsize[0], plot_cfg.figsize[1]))
 
     # Plot only the last 10 series
-    unique_ids = gt_df['unique_id'].unique()[-100:]
+    # unique_ids = gt_df['unique_id'].unique()[-100:]
+    unique_ids = ["M965", "M959", "M1054"]
 
     # Plot ground truth and forecasts
     for unique_id in unique_ids:

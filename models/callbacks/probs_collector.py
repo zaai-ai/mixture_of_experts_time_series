@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
-from tsfeatures import tsfeatures  # Requires tsfeatures package
+from tsfeatures import tsfeatures
 import pandas as pd
 
 
@@ -11,11 +11,12 @@ class GateValuesCollectorCallback(pl.Callback):
     A PyTorch Lightning callback to collect gate values per epoch
     and analyze expert specialization in a mixture-of-experts model.
     """
-    def __init__(self, top_k: int = 2, nr_layers: int = 3) -> None:
+    def __init__(self, top_k: int = 2, nr_layers: int = 3, is_stack: bool =False) -> None:
         super().__init__()
         self._gate_values = []  # Stores gate values for all layers
         self.top_k = top_k
         self.nr_layers = nr_layers  # Number of layers to track
+        self.is_stack = is_stack  # Flag to indicate if the model is a stackMoe
 
     def on_predict_epoch_end(self, trainer, pl_module):
         """
@@ -31,6 +32,13 @@ class GateValuesCollectorCallback(pl.Callback):
 
         epoch_gate_values = []  # Collect values per layer
         epoch_inputs = []  # Collect inputs per layer
+        
+        if self.is_stack:
+            all_gates_cat = torch.cat(all_gate_values, dim=0)
+            all_inputs_cat = torch.cat(all_inputs, dim=0)
+            self.plot_on_stack_analysis(all_gates_cat, all_inputs_cat)
+            return
+            
         for layer_idx in range(self.nr_layers):
             gate_values = all_gate_values[layer_idx]  # Extract for this layer
 
@@ -74,7 +82,37 @@ class GateValuesCollectorCallback(pl.Callback):
         plt.xticks(np.arange(all_values.shape[1]))
         plt.yticks(np.arange(all_values.shape[0]))
         plt.show()
+        
+    def plot_on_stack_analysis(self, gate_values, inputs):
+        
+        ### select 10 most samples with highest gate values per dimension/expert
+        top_k = 10  # number of top values to select
+        top_k_values, topk_indices = torch.topk(gate_values, k=top_k, dim=0)
 
+        print(f"topk_indices shape: {topk_indices.shape}")
+        print(f"topk_indices: {topk_indices}")
+        print(f"topk_values shape: {top_k_values.shape}")
+        print(f"topk_values: {top_k_values}")
+        # topk_indices: shape [top_k, num_experts]
+
+        for expert_idx in range(topk_indices.shape[1]):
+            expert_top_inputs = inputs[topk_indices[:, expert_idx]]
+            print(inputs[topk_indices[:, expert_idx][0]])
+            print(topk_indices[:, expert_idx])
+            print(expert_top_inputs)
+
+            plt.figure(figsize=(10, 6))
+            for i in range(expert_top_inputs.shape[0]):
+                print(f"expert_top_inputs[:, {i}]: {expert_top_inputs[i]}")
+                plt.plot(expert_top_inputs[i], label=f"Input {i+1}")
+                # plt.plot(expert_top_inputs[0:10], color='blue', label="Identity")
+            # plt.plot(expert_top_inputs[1], color='red', label="Trend")
+            # plt.plot(expert_top_inputs[2], color='green', label="Seasonality")
+            plt.title(f"Top 3 Inputs for Expert {expert_idx} (I->T->S)")
+            plt.xlabel("Lags")
+            plt.ylabel("Input Value")
+            plt.legend()
+            plt.show()
     def analyze_expert_specialization(self, time_series_data: pd.DataFrame):
         """
         Analyzes expert specialization based on time series characteristics.
