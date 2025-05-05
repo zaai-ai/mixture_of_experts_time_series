@@ -149,8 +149,9 @@ class SparsePooling(BasePooling):
         weighted_sum = torch.zeros(
             insample_y.size(0), self.out_features, device=insample_y.device
         )
-        
-        mask = windows_batch["insample_mask"]
+
+        if self.list_of_lags is not None:
+            mask = windows_batch["insample_mask"]
         num_experts = len(self.experts)
         # Group contributions by expert.
         for expert_idx in range(num_experts):

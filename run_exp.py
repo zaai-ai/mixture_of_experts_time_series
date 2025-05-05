@@ -38,19 +38,19 @@ def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseMo
         if gate_type is not None:
             best_params["gate_type"] = gate_type
             print("using gate type: ", best_params["gate_type"])
-        return NBeatsMoe(h=horizon, **best_params)
+        return NBeatsMoe(h=horizon, **best_params, accelerator="gpu")
     elif name.lower() == "nbeats":
         best_params["scaler_type"] = "identity"
-        return NBEATS(h=horizon, **best_params)
+        return NBEATS(h=horizon, **best_params, accelerator="gpu")
     elif name.lower() == "nbeatsstackmoe":
         best_params["scaler_type"] = "identity"
         # if gate_type is not None:
         #     best_params["gate_type"] = gate_type ... still does not allow to change the gate type 
-        return NBeatsStackMoe(h=horizon, **best_params)
+        return NBeatsStackMoe(h=horizon, **best_params, accelerator="gpu")
     elif name.lower() == "nbeatsmoeshared":
         # if best_params["mlp_units"][0][0] == 512 or best_params["mlp_units"][0][0] == 256:
         #     best_params["mlp_units"] = [[128, 128], [128, 128], [128, 128]]
-        return NBeatsMoe(h=horizon,  **best_params)
+        return NBeatsMoe(h=horizon,  **best_params, accelerator="gpu")
     elif name.lower() == "informermoe":
         return InformerMoe(h=horizon, **best_params)
     elif name.lower() == "vanillatransformer":
