@@ -378,7 +378,7 @@ class NBeatsMoe(BaseWindows):
         n_harmonics: int = 2,
         n_polynomials: int = 2,
         stack_types: list = ["identity", "trend", "seasonality"],
-        n_blocks: list = [3, 3, 3],
+        n_blocks: list = [1, 1, 1],
         mlp_units: list = 3 * [[128, 128]],
         dropout_prob_theta: float = 0.0,
         activation: str = "ReLU",
@@ -404,7 +404,7 @@ class NBeatsMoe(BaseWindows):
         pre_blocks: Optional[nn.ModuleList] = None,
         share_experts: bool = False,
         bias_load_balancer: bool = False,
-        auxiliary_loss: bool = True,
+        auxiliary_loss: bool = False,
         return_gate_logits: bool = True,
         drop_last_loader: bool = False,
         store_all_gate_logits: bool = True,
@@ -608,40 +608,61 @@ class NBeatsMoe(BaseWindows):
         else:
             loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
             if self.auxiliary_loss:
-                last_batch_layers = torch.cat([torch.cat(layer[-sum(self.n_blocks):], dim=0) for layer in self.all_gate_logits], dim=0)
-                # select top k experts
-                top_k_experts = torch.topk(last_batch_layers, self.top_k, dim=1).indices
+                last_batch_layers = torch.cat(
+                    [torch.cat(layer[-1:], dim=0) for layer in self.all_gate_logits], dim=0
+                )  # shape: [batch_size, nr_experts]
+                # Get top-k expert indices and their corresponding values
+                top_k = self.top_k
+                top_k_values, top_k_experts = torch.topk(last_batch_layers, top_k, dim=1)  # shape: [batch_size, k]
 
-                # Assume top_k_experts is a tensor of shape [batch_size, k] containing indices of selected experts
-                # For example: top_k_experts = tensor([[2, 1], [2, 3], [2, 0]])
-
-                expert_counts = torch.zeros(self.nr_experts, device=top_k_experts.device)
-
-                # Flatten the top_k_experts so we can count all selected experts
+                # Flatten the expert indices
                 flattened_experts = top_k_experts.flatten()
+                flattened_values = top_k_values.flatten()
 
-                # Count how many times each expert index appears
+                # Count how many times each expert was selected (hard count)
+                expert_counts = torch.zeros(self.nr_experts, device=last_batch_layers.device)
                 expert_counts.scatter_add_(
                     0,
                     flattened_experts,
                     torch.ones_like(flattened_experts, dtype=expert_counts.dtype)
                 )
 
-                # Normalize expert counts
-                p = expert_counts / expert_counts.sum()
+                # Sum of gate values for each expert
+                expert_value_sums = torch.zeros_like(expert_counts)
+                expert_value_sums.scatter_add_(
+                    0,
+                    flattened_experts,
+                    flattened_values
+                )
+
+                # Mean gate value per expert (only for selected times)
+                expert_means = torch.zeros_like(expert_counts)
+                expert_means = expert_value_sums / (expert_counts + 1e-8)  # prevent division by zero
+
+                # Multiply mean value × how often it was chosen
+                soft_expert_usage = expert_counts * expert_means
+
+                # Normalize to get a probability distribution
+                p = soft_expert_usage / soft_expert_usage.sum()
+
+                p = p.clamp(min=1e-8)
+
+                # Uniform distribution target
                 target = torch.full_like(p, 1.0 / self.nr_experts)
 
-                # KL divergence between current distribution and uniform
+                # KL divergence (with log(p))
                 lb_loss = F.kl_div(p.log(), target, reduction="batchmean")
 
                 self.log(
                     "lb_loss",
-                    lb_loss.detach().item() * 100000,
+                    lb_loss.detach().item() * 10,
                     batch_size=outsample_y.size(0),
                     prog_bar=True,
                     on_epoch=True,
                 )
-                loss = loss + lb_loss * 100000
+
+                # Final loss
+                loss = loss + lb_loss * 10
 
         if torch.isnan(loss):
             print("Model Parameters", self.hparams)

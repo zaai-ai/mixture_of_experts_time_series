@@ -9,6 +9,10 @@
 ## Low Priority
 - [x] Task 3: Explorar outras gates
 
+- [] Task 3: diferentes lags
+- [] Task 4: testar com o aux loss
+
+
 ## Notes
 - [DeepSeek loss-function-free](https://arxiv.org/pdf/2408.15664v1)
 - [DeepSeek code](https://github.com/deepseek-ai/DeepSeek-V3/blob/main/inference/model.py)
