@@ -87,6 +87,8 @@ class DensePooling(BasePooling):
 class SparsePooling(BasePooling):
     """
     Sparse pooling uses only the top-k experts (as determined by the gating network).
+    it calulates a weighted sum of the outputs of the top-k experts, where the weights
+    are determined by the gating network.
     """
     def __init__(
         self,
@@ -97,7 +99,8 @@ class SparsePooling(BasePooling):
         device: Optional[torch.device] = None,
         unpack: bool = True,
         return_soft_gates: bool = False,
-        bias: bool = False
+        bias: bool = False,
+        list_of_lags: Optional[List[int]] = None # if different lags are used for each expert
     ) -> None:
         """
         Args:
@@ -110,41 +113,44 @@ class SparsePooling(BasePooling):
         super(SparsePooling, self).__init__(experts, gate, out_features, device, unpack, return_soft_gates)
         self.k: int = k
 
-        self.bias: nn.Parameter = nn.Parameter(torch.empty(len(experts))) if bias else None
+        self.bias: nn.Parameter = nn.Parameter(torch.rand(len(experts))) if bias else None
+        self.list_of_lags: List[int] = list_of_lags
 
-    def forward(self, windows_batch: dict) -> torch.Tensor:
+    def forward(self, windows_batch: dict, gate_insample: torch.Tensor = None) -> torch.Tensor:
 
         if self.unpack: insample_y = windows_batch['insample_y']
         else: insample_y = windows_batch
 
+        gate_insample = insample_y if gate_insample is None else gate_insample
         # Compute the gate logits. Shape: [batch, num_experts]
-        gate_logits: torch.Tensor = self.gate(insample_y)
-
-        # original logits
-        original_gate_logits = gate_logits.clone()
+        gate_logits: torch.Tensor = self.gate(gate_insample)
 
         if self.bias is not None:
-            gate_logits += self.bias
+            gate_probs = torch.sigmoid(gate_logits)
+            gate_logits = gate_logits + self.bias
+        
 
         # Select the top-k experts for each sample.
         # topk_values & topk_indices have shape: [batch, k]
-        topk_values, topk_indices = torch.topk(gate_logits, self.k, dim=1)
+        topk_values, topk_indices = torch.topk(gate_logits, self.k, dim=-1)
 
         # print(f"topk_indices: {topk_indices}")
 
         if self.bias is not None:
-            topk_original_values = torch.gather(original_gate_logits, 1, topk_indices)
+            gate_probs = gate_probs.gather(-1, topk_indices)
+            gate_probs = gate_probs / (gate_probs.sum(dim=-1, keepdim=True))
         else:
             topk_original_values = topk_values
 
-        # Compute probabilities for the top-k experts using softmax.
-        gate_probs: torch.Tensor = self.softmax(topk_original_values)
+            # Compute probabilities for the top-k experts using softmax.
+            gate_probs: torch.Tensor = self.softmax(topk_original_values)
 
         # Initialize the weighted sum output.
         weighted_sum = torch.zeros(
             insample_y.size(0), self.out_features, device=insample_y.device
         )
         
+        mask = windows_batch["insample_mask"]
         num_experts = len(self.experts)
         # Group contributions by expert.
         for expert_idx in range(num_experts):
@@ -158,6 +164,12 @@ class SparsePooling(BasePooling):
             # This gives a weight for each sample for expert_idx.
             expert_weight = (gate_probs * expert_mask.float()).sum(dim=1)  # Shape: [batch]
 
+            if self.list_of_lags is not None:
+                # Get the lag for the current expert.
+                lag = self.list_of_lags[expert_idx]
+                # Apply the lag to the input batch.
+                windows_batch['insample_y'] = insample_y[:, -lag:]
+                windows_batch["insample_mask"] = mask[:, -lag:]
             # Compute expert output for the entire batch.
             expert_output = self.experts[expert_idx](windows_batch)  # Shape: [batch, out_features]
 

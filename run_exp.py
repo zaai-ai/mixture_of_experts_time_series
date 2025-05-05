@@ -27,21 +27,25 @@ from omegaconf import ListConfig
 STORAGE = "sqlite:///c:/Users/ricar/mixture_of_experts_time_series/db/study_nbeats_blcs.db"
 
 def get_instance(name: str, best_params: dict[str, Any], horizon: int) -> BaseModel:
+
+    gate_type = None
+    if '-' in name:
+        name, gate_type = name.split("-", maxsplit=1)
+
     if name.lower() == "nbeatsmoe" or name.lower() == "nbeatsmoescaled":
         # if best_params["mlp_units"][0][0] == 512 or best_params["mlp_units"][0][0] == 256:
         #     best_params["mlp_units"] = [[128, 128], [128, 128], [128, 128]]
-        return NBeatsMoe(h=horizon, **best_params)
-    elif name.lower() == "nbeatsmoe-conv1d-conv1d-aap-gate":
-        best_params["gate_type"] = "conv1d-aap"
-        return NBeatsMoe(h=horizon, **best_params)
-    elif name.lower() == "nbeatsmoe-conv1d-conv1d-maxpool-gate":
-        best_params["gate_type"] = "conv1d-maxpool"
+        if gate_type is not None:
+            best_params["gate_type"] = gate_type
+            print("using gate type: ", best_params["gate_type"])
         return NBeatsMoe(h=horizon, **best_params)
     elif name.lower() == "nbeats":
         best_params["scaler_type"] = "identity"
         return NBEATS(h=horizon, **best_params)
     elif name.lower() == "nbeatsstackmoe":
         best_params["scaler_type"] = "identity"
+        # if gate_type is not None:
+        #     best_params["gate_type"] = gate_type ... still does not allow to change the gate type 
         return NBeatsStackMoe(h=horizon, **best_params)
     elif name.lower() == "nbeatsmoeshared":
         # if best_params["mlp_units"][0][0] == 512 or best_params["mlp_units"][0][0] == 256:
@@ -150,7 +154,10 @@ def main(cfg: DictConfig):
         for horizon in horizons:
             Y_train_df, Y_test_df = train_test_split(Y_ALL, horizon)
 
-            study_name = f"{model_name}_{cfg.dataset.name}_{cfg.dataset.group}_{horizon}"
+            
+            model_name_study = model_name if '-' not in model_name else model_name.split("-", maxsplit=1)[0]
+
+            study_name = f"{model_name_study}_{cfg.dataset.name}_{cfg.dataset.group}_{horizon}"
             
 
             tentatives = 0
@@ -165,7 +172,7 @@ def main(cfg: DictConfig):
                     print(f"Error: There is no study with the name '{study_name}'.")
                     # change study name to search for a new horizon
                     tentatives += 1
-                    study_name = f"{model_name}_{cfg.dataset.name}_{cfg.dataset.group}_{horizon + tentatives}"
+                    study_name = f"{model_name_study}_{cfg.dataset.name}_{cfg.dataset.group}_{horizon + tentatives}"
 
             if tentatives == 24:
                 print("Error: There is no study available")
@@ -209,7 +216,7 @@ def main(cfg: DictConfig):
                 run_results.append({
                     "dataset": cfg.dataset.name,
                     "freq": cfg.dataset.group,
-                    "gate_type": best_params["gate_type"],
+                    "gate_type": best_params["gate_type"] if "gate_type" in best_params else model_name,
                     "smape": smape_e,
                     "mae": mae_e,
                     "mse": mse_e,
@@ -217,7 +224,7 @@ def main(cfg: DictConfig):
                     "random_seed": random_seed,
                 })
 
-                save_run_results(run_results, results_file="/home/ricardo/mixture_of_experts_time_series/all_results.csv")
+                save_run_results(run_results, results_file="C:\\Users\\ricar\\mixture_of_experts_time_series\\results\\all_results.csv")
                 
                 print(f"results: {results}")
 

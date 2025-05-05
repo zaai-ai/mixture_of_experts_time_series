@@ -17,6 +17,7 @@ from datasets.load_data.gluonts_dataset import GluontsDataset
 
 # Import your model classes
 from models.SimpleMoe import SimpleMoe
+from models.SimpleMoe_NLags import SimpleMoeDLags
 from models.TimeMoeAdapted import TimeMoeAdapted
 from models.InformerMoe import InformerMoe
 from models.MlpMoe import MLPMoe
@@ -166,7 +167,29 @@ def get_instance(
             # scaler_type='minmax',     
             # callbacks=[LearningRateMonitor(logging_interval='step')],
             callbacks= [ checkpoint_callback] #, SeriesSimilarityCallback(**kwargs) ]#SeriesDistributionCallback(**kwargs)], # GateDistributionCallback(**kwargs)
- )
+    )
+    elif model_name.lower() == "simplemoe_dlags":
+        input_size_val = get_config_value(params.input_size, config_idx)
+        dropout_val = get_config_value(params.dropout, config_idx)
+        loss_str = get_config_value(params.loss, config_idx)
+        valid_loss_str = get_config_value(params.valid_loss, config_idx)
+        early_stop = get_config_value(
+            params.early_stop_patience_steps, config_idx)
+        batch_size_val = get_config_value(params.batch_size, config_idx)
+        val_check_steps = get_config_value(params.val_check_steps, config_idx)
+
+        model_instance = SimpleMoeDLags(
+            h=horizon,
+            input_size=input_size_val,
+            dropout=dropout_val,
+            loss=eval(valid_loss_str)(),
+            valid_loss=eval(valid_loss_str)(),
+            early_stop_patience_steps=early_stop,
+            batch_size=batch_size_val,
+            enable_checkpointing=True,
+            val_check_steps=val_check_steps,
+            # callbacks= [ checkpoint_callback] 
+    )
     elif model_name.lower() == "nbeats":
         input_size_val = get_config_value(params.input_size, config_idx)
         loss_str = get_config_value(params.loss, config_idx)
