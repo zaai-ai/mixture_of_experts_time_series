@@ -226,7 +226,7 @@ class SharedExpertPooling(BasePooling):
             bias=bias
         )
 
-    def forward(self, windows_batch: dict) -> torch.Tensor:
+    def forward(self, windows_batch: dict, gate_insample: torch.Tensor = None) -> torch.Tensor:
         
         if self.unpack: insample_y = windows_batch['insample_y']
         else: insample_y = windows_batch

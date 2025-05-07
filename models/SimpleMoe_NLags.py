@@ -142,6 +142,8 @@ class SimpleMoeDLags(BaseWindows):
                 NBEATS(self.h, 36, random_seed=3, mlp_units=3 * [[64, 64]]),
                 NBEATS(self.h, 54, random_seed=4, mlp_units=3 * [[64, 64]]),
                 NBEATS(self.h, self.input_size, random_seed=5, mlp_units=3 * [[64, 64]]),
+
+                # NBEATS(self.h, self.input_size, random_seed=5, mlp_units=3 * [[64, 64]]),
                 # NBEATS(self.h, self.input_size),
                 # NBEATS(self.h, self.input_size),
                 # NBEATS(self.h, self.input_size),
@@ -166,7 +168,7 @@ class SimpleMoeDLags(BaseWindows):
                 self.experts, 
                 self.gate,
                 self.h,
-                k=5,
+                k=1,
                 list_of_lags=self.list_of_lags,
             )
 
