@@ -121,6 +121,8 @@ class SparsePooling(BasePooling):
         if self.unpack: insample_y = windows_batch['insample_y']
         else: insample_y = windows_batch
 
+        original_insample_y = insample_y.clone()
+
         gate_insample = insample_y if gate_insample is None else gate_insample
         # Compute the gate logits. Shape: [batch, num_experts]
         gate_logits: torch.Tensor = self.gate(gate_insample)
@@ -150,7 +152,7 @@ class SparsePooling(BasePooling):
             insample_y.size(0), self.out_features, device=insample_y.device
         )
 
-        if self.list_of_lags is not None:
+        if self.list_of_lags is not None and self.unpack:
             mask = windows_batch["insample_mask"]
         num_experts = len(self.experts)
         # Group contributions by expert.
@@ -169,8 +171,11 @@ class SparsePooling(BasePooling):
                 # Get the lag for the current expert.
                 lag = self.list_of_lags[expert_idx]
                 # Apply the lag to the input batch.
-                windows_batch['insample_y'] = insample_y[:, -lag:]
-                windows_batch["insample_mask"] = mask[:, -lag:]
+                if self.unpack:
+                    windows_batch['insample_y'] = insample_y[:, -lag:]
+                    windows_batch["insample_mask"] = mask[:, -lag:]
+                else:
+                    windows_batch = insample_y[:, -lag:]
             # Compute expert output for the entire batch.
             expert_output = self.experts[expert_idx](windows_batch)  # Shape: [batch, out_features]
 
