@@ -96,7 +96,7 @@ models:
       batch_size: 32
   nbeatsMoeLags:
     params:
-      input_size: 54
+      input_size: 36
       loss: "MAE"         # Single string value (will be eval'd to a loss instance)
       valid_loss: "MAE"    # Single string value
       early_stop_patience_steps: 10  # A single number
