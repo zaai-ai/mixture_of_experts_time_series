@@ -97,14 +97,14 @@ class GateValuesCollectorCallback(pl.Callback):
 
         for expert_idx in range(topk_indices.shape[1]):
             expert_top_inputs = inputs[topk_indices[:, expert_idx]]
-            print(inputs[topk_indices[:, expert_idx][0]])
-            print(topk_indices[:, expert_idx])
-            print(expert_top_inputs)
+            # print(inputs[topk_indices[:, expert_idx][0]])
+            # print(topk_indices[:, expert_idx])
+            # print(expert_top_inputs)
 
             plt.figure(figsize=(10, 6))
             for i in range(expert_top_inputs.shape[0]):
                 print(f"expert_top_inputs[:, {i}]: {expert_top_inputs[i]}")
-                plt.plot(expert_top_inputs[i], label=f"Input {i+1}")
+                plt.plot(expert_top_inputs[i].detach().cpu().numpy(), label=f"Input {i+1}")
                 # plt.plot(expert_top_inputs[0:10], color='blue', label="Identity")
             # plt.plot(expert_top_inputs[1], color='red', label="Trend")
             # plt.plot(expert_top_inputs[2], color='green', label="Seasonality")

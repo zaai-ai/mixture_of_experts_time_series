@@ -7,14 +7,14 @@ version_base: 1.1
 
 model:
   name:  ["nbeatsmoescaled"] # ["nbeats"] # ["nbeats"] # "nbeatsmoe",
-horizon: [18] # [12, 18, 24] #  [4, 6] #, 12, 18, 24]
+horizon: [8] # [12, 18, 24] #  [4, 6] #, 12, 18, 24]
 
 all: False
 
 dataset:
   name: "m4" # "m3"
   directory: "C:\\Users\\ricar\\mixture_of_experts_time_series\\data\\m4\\"
-  group: "Monthly" # "Quarterly" # "Monthly"
+  group: "Quarterly" # "Quarterly" # "Monthly"
   freq: 1
 
 
