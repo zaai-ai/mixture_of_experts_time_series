@@ -11,12 +11,13 @@ class GateValuesCollectorCallback(pl.Callback):
     A PyTorch Lightning callback to collect gate values per epoch
     and analyze expert specialization in a mixture-of-experts model.
     """
-    def __init__(self, top_k: int = 2, nr_layers: int = 3, is_stack: bool =False) -> None:
+    def __init__(self, top_k: int = 2, nr_layers: int = 3, is_stack: bool =False, reset_on_epoch: bool = False) -> None:
         super().__init__()
         self._gate_values = []  # Stores gate values for all layers
         self.top_k = top_k
         self.nr_layers = nr_layers  # Number of layers to track
         self.is_stack = is_stack  # Flag to indicate if the model is a stackMoe
+        self.reset_on_epoch = reset_on_epoch  # Flag to reset gate values on each epoch
 
     def on_predict_epoch_end(self, trainer, pl_module):
         """
@@ -36,31 +37,39 @@ class GateValuesCollectorCallback(pl.Callback):
         if self.is_stack:
             all_gates_cat = torch.cat(all_gate_values, dim=0)
             all_inputs_cat = torch.cat(all_inputs, dim=0)
+            print(f"\nall_gates_cat shape: {all_gates_cat.shape}")
+            print("\nmean inputs_cat: ", all_gates_cat.mean(dim=0))
             self.plot_on_stack_analysis(all_gates_cat, all_inputs_cat)
-            return
             
-        for layer_idx in range(self.nr_layers):
-            gate_values = all_gate_values[layer_idx]  # Extract for this layer
+        else:
+            for layer_idx in range(self.nr_layers):
+                gate_values = all_gate_values[layer_idx]  # Extract for this layer
 
-            # Concatenate gate values across all batches in the list
-            gate_concated_values = torch.cat(gate_values, dim=0)  # (all_test_points, num_experts)
-            all_concated_inputs = torch.cat(all_inputs[layer_idx], dim=0)  # (all_test_points, num_features)
+                # Concatenate gate values across all batches in the list
+                gate_concated_values = torch.cat(gate_values, dim=0)  # (all_test_points, num_experts)
+                all_concated_inputs = torch.cat(all_inputs[layer_idx], dim=0)  # (all_test_points, num_features)
 
-            # Extract top-k experts per sample
-            top_k_gate_values, topk_indices = torch.topk(gate_concated_values, self.top_k, dim=1)
-            layer_gate_values = torch.zeros_like(gate_concated_values)
-            top_k_probs = torch.softmax(top_k_gate_values, dim=1)
-            layer_gate_values.scatter_(1, topk_indices, top_k_probs)
+                # Extract top-k experts per sample
+                top_k_gate_values, topk_indices = torch.topk(gate_concated_values, self.top_k, dim=1)
+                layer_gate_values = torch.zeros_like(gate_concated_values)
+                top_k_probs = torch.softmax(top_k_gate_values, dim=1)
+                layer_gate_values.scatter_(1, topk_indices, top_k_probs)
 
-            epoch_gate_values.append(layer_gate_values.detach().cpu().numpy())
-            epoch_inputs.append(all_concated_inputs.detach().cpu().numpy())
-        
-        self._gate_values.append(np.array(epoch_gate_values))  # Store per epoch
-        self.plot_expert_density()
+                epoch_gate_values.append(layer_gate_values.detach().cpu().numpy())
+                epoch_inputs.append(all_concated_inputs.detach().cpu().numpy())
+            
+            self._gate_values.append(np.array(epoch_gate_values))  # Store per epoch
+            self.plot_expert_density()
 
-        ## save the gate values to a file
-        np.save(f"gate_values_epoch_{trainer.current_epoch}.npy", np.array(epoch_gate_values))
-        np.save(f"all_inputs_epoch_{trainer.current_epoch}.npy", np.array(epoch_inputs))
+            ## save the gate values to a file
+            np.save(f"gate_values_epoch_{trainer.current_epoch}.npy", np.array(epoch_gate_values))
+            np.save(f"all_inputs_epoch_{trainer.current_epoch}.npy", np.array(epoch_inputs))
+
+        if self.reset_on_epoch:
+            print("Resetting gate values for next epoch.")
+            pl_module.all_gate_logits = []
+            pl_module.all_inputs = []
+
 
     def plot_expert_density(self):
         """
@@ -89,10 +98,10 @@ class GateValuesCollectorCallback(pl.Callback):
         top_k = 10  # number of top values to select
         top_k_values, topk_indices = torch.topk(gate_values, k=top_k, dim=0)
 
-        print(f"topk_indices shape: {topk_indices.shape}")
-        print(f"topk_indices: {topk_indices}")
-        print(f"topk_values shape: {top_k_values.shape}")
-        print(f"topk_values: {top_k_values}")
+        # print(f"topk_indices shape: {topk_indices.shape}")
+        # print(f"topk_indices: {topk_indices}")
+        # print(f"topk_values shape: {top_k_values.shape}")
+        # print(f"topk_values: {top_k_values}")
         # topk_indices: shape [top_k, num_experts]
 
         for expert_idx in range(topk_indices.shape[1]):
@@ -103,7 +112,7 @@ class GateValuesCollectorCallback(pl.Callback):
 
             plt.figure(figsize=(10, 6))
             for i in range(expert_top_inputs.shape[0]):
-                print(f"expert_top_inputs[:, {i}]: {expert_top_inputs[i]}")
+                # print(f"expert_top_inputs[:, {i}]: {expert_top_inputs[i]}")
                 plt.plot(expert_top_inputs[i].detach().cpu().numpy(), label=f"Input {i+1}")
                 # plt.plot(expert_top_inputs[0:10], color='blue', label="Identity")
             # plt.plot(expert_top_inputs[1], color='red', label="Trend")
