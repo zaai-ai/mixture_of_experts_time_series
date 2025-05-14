@@ -39,6 +39,15 @@ class GateValuesCollectorCallback(pl.Callback):
             all_inputs_cat = torch.cat(all_inputs, dim=0)
             print(f"\nall_gates_cat shape: {all_gates_cat.shape}")
             print("\nmean inputs_cat: ", all_gates_cat.mean(dim=0))
+
+            # count the number of experts > 0.4
+            num_experts = (all_gates_cat > 0.5).sum(dim=0)
+            print(f"\nnum_experts: {num_experts}")
+
+            # Count the number of times each expert has the highest gate value
+            best_expert_counts = torch.argmax(all_gates_cat, dim=1).bincount(minlength=all_gates_cat.shape[1])
+            print(f"\nBest expert counts: {best_expert_counts}")
+
             self.plot_on_stack_analysis(all_gates_cat, all_inputs_cat)
             
         else:
