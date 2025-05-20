@@ -18,6 +18,7 @@ class GateValuesCollectorCallback(pl.Callback):
         self.nr_layers = nr_layers  # Number of layers to track
         self.is_stack = is_stack  # Flag to indicate if the model is a stackMoe
         self.reset_on_epoch = reset_on_epoch  # Flag to reset gate values on each epoch
+        self.batch = 0
 
     def on_predict_epoch_end(self, trainer, pl_module):
         """
@@ -49,6 +50,11 @@ class GateValuesCollectorCallback(pl.Callback):
             print(f"\nBest expert counts: {best_expert_counts}")
 
             self.plot_on_stack_analysis(all_gates_cat, all_inputs_cat)
+
+            np.save(f"gate_values_stack{self.batch}_epoch_{trainer.current_epoch}.npy", np.array(all_gates_cat.detach().cpu().numpy()))
+            np.save(f"all_inputs_stack{self.batch}_epoch_{trainer.current_epoch}.npy", np.array(all_inputs_cat.detach().cpu().numpy()))
+
+            self.batch += 1
             
         else:
             for layer_idx in range(self.nr_layers):
