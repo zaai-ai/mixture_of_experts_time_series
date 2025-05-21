@@ -44,16 +44,13 @@ models = [
     NBeatsMoe(h=horizon,
               input_size=n_lags,
               mlp_units=3 * [[256, 256]],
-              max_steps=1000,
-              accelerator='cpu'),
+              max_steps=1000,),
     NBEATS(h=horizon, input_size=n_lags,
-           max_steps=1000,
-           accelerator='cpu'),
+           max_steps=1000,),
     NBeatsStackMoe(h=horizon,
                    input_size=n_lags,
                    mlp_units=3 * [[128, 128]],
-                   max_steps=1000,
-                   accelerator='cpu'),
+                   max_steps=1000,),
 ]
 
 # seasonal_mase = partial(mase, seasonality=freq_int)
