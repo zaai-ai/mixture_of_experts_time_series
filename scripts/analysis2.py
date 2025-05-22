@@ -30,8 +30,10 @@ results_list = {
     'm1y': 'results,gluonts,m1_yearly.csv',
     'tm': 'results,gluonts,tourism_monthly.csv',
     'tq': 'results,gluonts,tourism_quarterly.csv',
+    'ty': 'results,gluonts,tourism_yearly.csv',
     'm3m': 'results,m3,Monthly.csv',
     'm3q': 'results,m3,Quarterly.csv',
+    'm3y': 'results,m3,Yearly.csv',
     'm4m': 'results,m4,Monthly.csv',
     'm4q': 'results,m4,Quarterly.csv',
     'm4y': 'results,m4,Yearly.csv',
@@ -83,7 +85,7 @@ for dataset, file_path in results_list.items():
                 radar.uid_accuracy.expected_shortfall(err),
                 radar.evaluate_by_horizon_bounds(),
                 radar.uid_accuracy.accuracy_on_hard(err),
-                radar.evaluate_by_group(group_col='anomaly_status')
+                radar.evaluate_by_group(group_col='anomaly_status'),
                 #error_on_trend,
                 #error_on_seas
                     ], axis=1)

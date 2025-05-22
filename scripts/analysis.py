@@ -4,6 +4,8 @@ from utilsforecast.losses import smape, mape, rmae, mae, mase, rmse, rmsse
 
 from modelradar.evaluate.radar import ModelRadar
 from modelradar.visuals.plotter import ModelRadarPlotter, SpiderPlot
+from pandas.tseries.offsets import DateOffset, MonthEnd, QuarterEnd, YearEnd
+from functools import partial
 
 results_list = {
     'm1m': 'results,gluonts,m1_monthly.csv',
@@ -13,13 +15,33 @@ results_list = {
     'tq': 'results,gluonts,tourism_quarterly.csv',
     'm3m': 'results,m3,Monthly.csv',
     'm3q': 'results,m3,Quarterly.csv',
+    # 'm4m': 'results,m4,Monthly.csv',
+    # 'm4q': 'results,m4,Quarterly.csv',
+    # 'm4y': 'results,m4,Yearly.csv',
 }
 
 all_results = []
+start_date = pd.to_datetime('1994-01-31')
+
+def convert_to_date(group, freq):
+    group = group.copy()
+    periods = len(group)
+    group['ds'] = pd.date_range(start=start_date, periods=periods, freq=freq)
+    return group
+
 for dataset, file_path in results_list.items():
     try:
         df = pd.read_csv(file_path)
         df['unique_id'] = dataset + '_' + df['unique_id']
+
+        # print(df['ds'].head())
+        # print(df['ds'].describe())
+        # if pd.api.types.is_integer_dtype(df['ds']):
+
+        #     df = df.groupby('unique_id', group_keys=False).apply(partial(convert_to_date, freq=dataset[-1].upper()+'E'))
+
+        # print(df['ds'].head())
+
         all_results.append(df)
         print(f"Successfully loaded: {file_path}")
     except Exception as e:

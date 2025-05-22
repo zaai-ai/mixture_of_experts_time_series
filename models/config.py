@@ -635,7 +635,7 @@ config = {
                 "start_padding_enabled": True
             }
         },
-        "tourism_yealy": {
+        "tourism_yearly": {
             "NBEATS": {
                 "input_size": 3,
                 "mlp_units": [

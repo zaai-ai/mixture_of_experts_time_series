@@ -25,7 +25,7 @@ from neuralforecast.models import NBEATS
 from models.config import config
 
 dataset='gluonts'
-group='tourism_quarterly'
+group='tourism_yearly'
 # m1_yearly
 # m1_quarterly
 # tourism_monthly
@@ -63,18 +63,18 @@ models = [
               # input_size=n_lags,
               # mlp_units=3 * [[256, 256]],
               # max_steps=500,
-              accelerator='mps',
+              accelerator='cuda',
               **config[dataset][group]['NBeatsMoe']),
     NBEATS(h=horizon,
            # input_size=n_lags,
            # max_steps=500,
-           accelerator='mps',
+           accelerator='cuda',
            **config[dataset][group]['NBEATS']),
     NBeatsStackMoe(h=horizon,
                    # input_size=n_lags,
                    # mlp_units=3 * [[128, 128]],
                    # max_steps=500,
-                   accelerator='mps',
+                   accelerator='cuda',
                    **config[dataset][group]['NBeatsStackMoe']),
 ]
 
