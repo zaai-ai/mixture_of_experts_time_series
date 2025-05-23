@@ -95,7 +95,7 @@ for dataset, file_path in results_list.items():
     plot = SpiderPlot.create_plot(df=df_plot, values='rank', include_title=False)
     plot = plot + p9.ggtitle(f"Spider Plot for {dataset.upper()}") + p9.theme(
             plot_margin=0.05,
-            figure_size=(12, 12),
+            figure_size=(20, 20),
             legend_position='top',
             strip_text=p9.element_text(size=17, family='cmtt10'),
             plot_title=p9.element_text(size=20, family='cmtt10'),

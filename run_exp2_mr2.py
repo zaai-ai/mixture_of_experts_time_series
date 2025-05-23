@@ -24,25 +24,25 @@ from neuralforecast.models import NBEATS
 
 from models.config import config
 
-dataset='gluonts'
-group='tourism_yearly'
+dataset='m4'
+group='Yearly'
 # m1_yearly
 # m1_quarterly
 # tourism_monthly
 # tourism_quarterly
 # tourism_yearly
-df, horizon, n_lags, freq_str, freq_int = load_dataset(f'{dataset}_{group}', {})
+# df, horizon, n_lags, freq_str, freq_int = load_dataset(f'{dataset}_{group}', {})
 # df, horizon, n_lags, freq_str, freq_int = load_dataset(f'{dataset}_{group}', {})
 # df, horizon, n_lags, freq_str, freq_int = load_dataset(f'{dataset}_{group}', {})
 # df, horizon, n_lags, freq_str, freq_int = load_dataset(f'{dataset}_{group}', {})
 # df = load_dataset(dataset, {'directory': '.', 'group': group})
-# df = load_dataset(dataset, {'directory': '.', 'group': group})
+df = load_dataset(dataset, {'directory': '.', 'group': group})
 # df = load_dataset(dataset, {'directory': '.', 'group': group})
 # config['m3']['Yearly']
 
 # horizon = 18
 # horizon = 8
-# horizon = 4
+horizon = 6
 # n_lags = 18
 # n_lags = 8
 # n_lags = 2
