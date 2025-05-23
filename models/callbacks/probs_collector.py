@@ -27,6 +27,7 @@ class GateValuesCollectorCallback(pl.Callback):
         """
         all_gate_values = pl_module.all_gate_logits  # Assuming this exists
         all_inputs = pl_module.all_inputs  # Assuming this exists
+        # all_outputs = pl_module.all_outs  # Assuming this exists
 
         if not all_gate_values or len(all_gate_values[0]) < self.nr_layers:
             print("Not enough layers in all_gate_logits.")
@@ -38,6 +39,7 @@ class GateValuesCollectorCallback(pl.Callback):
         if self.is_stack:
             all_gates_cat = torch.cat(all_gate_values, dim=0)
             all_inputs_cat = torch.cat(all_inputs, dim=0)
+            # all_outputs = torch.cat([torch.cat(batch, dim=0) for batch in all_outputs], dim=0)
             print(f"\nall_gates_cat shape: {all_gates_cat.shape}")
             print("\nmean inputs_cat: ", all_gates_cat.mean(dim=0))
 
@@ -53,6 +55,7 @@ class GateValuesCollectorCallback(pl.Callback):
 
             np.save(f"gate_values_stack{self.batch}_epoch_{trainer.current_epoch}.npy", np.array(all_gates_cat.detach().cpu().numpy()))
             np.save(f"all_inputs_stack{self.batch}_epoch_{trainer.current_epoch}.npy", np.array(all_inputs_cat.detach().cpu().numpy()))
+            # np.save(f"all_outputs_stack{self.batch}_epoch_{trainer.current_epoch}.npy", np.array(all_outputs.detach().cpu().numpy()))
 
             self.batch += 1
             

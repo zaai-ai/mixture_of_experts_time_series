@@ -338,6 +338,7 @@ class NBeatsStackMoe(BaseWindows):
         self.store_all_gate_logits = store_all_gate_logits
         self.all_gate_logits = []
         self.all_inputs = []
+        self.all_outs = [[] for _ in range(len(self.blocks))]
         
     def predict_step(self, batch, batch_idx):
         self._training = False
@@ -437,7 +438,11 @@ class NBeatsStackMoe(BaseWindows):
             backcast, block_forecast = block(insample_y=residuals)
             residuals = (residuals - backcast) * insample_mask
 
-            forecast = forecast + gate[:, i, None, None] * block_forecast
+            block_forecast = gate[:, i, None, None] * block_forecast
+            forecast = forecast + block_forecast
+
+            # if not self._training and self.store_all_gate_logits:
+            #     self.all_outs[i].append(gate[:, i, None, None] * block_forecast)
 
             if self.decompose_forecast:
                 block_forecasts.append(block_forecast)
