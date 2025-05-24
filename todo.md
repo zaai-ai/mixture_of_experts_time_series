@@ -17,3 +17,6 @@
 - [DeepSeek loss-function-free](https://arxiv.org/pdf/2408.15664v1)
 - [DeepSeek code](https://github.com/deepseek-ai/DeepSeek-V3/blob/main/inference/model.py)
 - N é preciso correr hyper para todos os hyperparametros, correr apenas para o ultimo horizonte 
+
+
+- E se usar super supervision no stack. Ao inves de usar apenas a gate, dava scale do output de cada stack e usava-a para calcular o erro com o forecast. 

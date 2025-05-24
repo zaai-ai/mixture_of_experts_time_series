@@ -344,6 +344,10 @@ class NBeatsStackMoe(BaseWindows):
         self._training = False
         return super().predict_step(batch, batch_idx)
 
+    def decompose(self, dataset, step_size=1, random_seed=None, **data_module_kwargs):
+        self._training = False
+        return super().decompose(dataset, step_size, random_seed, **data_module_kwargs)
+
     def create_stack(
         self,
         stack_types,
@@ -436,6 +440,8 @@ class NBeatsStackMoe(BaseWindows):
         block_forecasts = [forecast.repeat(1, self.h, 1)]
         for i, block in enumerate(self.blocks):
             backcast, block_forecast = block(insample_y=residuals)
+            
+            # backcast = gate[:, i, None] * backcast
             residuals = (residuals - backcast) * insample_mask
 
             block_forecast = gate[:, i, None, None] * block_forecast
