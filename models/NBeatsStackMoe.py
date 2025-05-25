@@ -273,7 +273,6 @@ class NBeatsStackMoe(BaseWindows):
         drop_last_loader: bool = False,
         optimizer=None,
         store_all_gate_logits=True,
-        deep_supervision=True,
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
@@ -341,11 +340,6 @@ class NBeatsStackMoe(BaseWindows):
         self.all_inputs = []
         self.all_outs = [[] for _ in range(len(self.blocks))]
 
-        self.deep_supervision = deep_supervision
-
-        if self.deep_supervision:
-            self.blocks_to_supervise = []
-            self.decompose_forecast = True
         
     def predict_step(self, batch, batch_idx):
         self._training = False
@@ -355,105 +349,6 @@ class NBeatsStackMoe(BaseWindows):
         self._training = False
         return super().decompose(dataset, step_size, random_seed, **data_module_kwargs)
     
-    def minmax_scale(self, x, eps=1e-6, x_min=None, x_max=None):
-        if x_min is None: x_min = x.amin(dim=1, keepdim=True)
-        if x_max is None: x_max = x.amax(dim=1, keepdim=True)
-        return (x - x_min) / (x_max - x_min + eps)
-
-    def training_step(self, batch, batch_idx):
-        # Create and normalize windows [Ws, L+H, C]
-        windows = self._create_windows(batch, step="train")
-        y_idx = batch["y_idx"]
-        original_outsample_y = torch.clone(windows["temporal"][:, -self.h :, y_idx])
-        windows = self._normalization(windows=windows, y_idx=y_idx)
-
-        # Parse windows
-        (
-            insample_y,
-            insample_mask,
-            outsample_y,
-            outsample_mask,
-            hist_exog,
-            futr_exog,
-            stat_exog,
-        ) = self._parse_windows(batch, windows)
-
-        windows_batch = dict(
-            insample_y=insample_y,
-            insample_mask=insample_mask,
-            futr_exog=futr_exog,
-            hist_exog=hist_exog,
-            stat_exog=stat_exog,
-        )
-
-        # Model Predictions
-        output = self(windows_batch)
-
-        if self.loss.is_distribution_output:
-            print("Distributional output")
-            _, y_loc, y_scale = self._inv_normalization(
-                y_hat=outsample_y, temporal_cols=batch["temporal_cols"], y_idx=y_idx
-            )
-            outsample_y = original_outsample_y
-
-            if len(self.blocks_to_supervise) > 1:
-                total_loss = 0.0
-                scaled_y = self.minmax_scale(outsample_y)
-
-                for i in range(len(self.blocks_to_supervise)):
-                    block_output = self.minmax_scale(self.blocks_to_supervise[i].unsqueeze(-1))
-                    distr_args = self.loss.scale_decouple(
-                        output=block_output, loc=y_loc, scale=y_scale
-                    )
-                    loss_i = self.loss(y=scaled_y, distr_args=distr_args, mask=outsample_mask)
-                    total_loss += loss_i 
-
-                loss = total_loss / len(self.blocks_to_supervise)
-                # Final output (non-deep)
-                distr_args = self.loss.scale_decouple(
-                    output=output, loc=y_loc, scale=y_scale
-                )
-                loss += self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
-            else:
-                distr_args = self.loss.scale_decouple(
-                    output=output, loc=y_loc, scale=y_scale
-                )
-                loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
-
-        else:
-            if len(self.blocks_to_supervise) > 1:
-                total_loss = 0.0
-                for i in range(len(self.blocks_to_supervise)):
-                    # x_min = self.blocks_to_supervise[i].squeeze(-1).amin(dim=1, keepdim=True)
-                    # x_max = self.blocks_to_supervise[i].squeeze(-1).amax(dim=1, keepdim=True)
-                    scaled_y = self.minmax_scale(outsample_y)
-                    block_output = self.minmax_scale(self.blocks_to_supervise[i].squeeze(-1))
-
-                    loss_i = self.loss(y=scaled_y, y_hat=block_output, mask=outsample_mask)
-                    total_loss += loss_i 
-                loss = total_loss / len(self.blocks_to_supervise)
-                loss += self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
-            else:
-                loss = self.loss(y=outsample_y, y_hat=output, mask=outsample_mask)
-
-        if torch.isnan(loss):
-            print("Model Parameters", self.hparams)
-            print("insample_y", torch.isnan(insample_y).sum())
-            print("outsample_y", torch.isnan(outsample_y).sum())
-            print("output", torch.isnan(output).sum())
-            raise Exception("Loss is NaN, training stopped.")
-
-        self.log(
-            "train_loss",
-            loss.detach().item(),
-            batch_size=outsample_y.size(0),
-            prog_bar=True,
-            on_epoch=True,
-        )
-        self.train_trajectories.append((self.global_step, loss.detach().item()))
-        return loss
-
-
     def create_stack(
         self,
         stack_types,
@@ -562,15 +457,6 @@ class NBeatsStackMoe(BaseWindows):
         # Adapting output's domain
         forecast = self.loss.domain_map(forecast)
 
-        if self.deep_supervision:
-            # (n_batch, n_blocks, h, out_features)
-            block_forecasts_final = torch.stack(block_forecasts)
-            block_forecasts_final = block_forecasts_final.permute(1, 0, 2, 3)
-            block_forecasts_final = block_forecasts_final.squeeze(-1)
-
-            self.blocks_to_supervise = block_forecasts[1:]
-
-            return forecast
 
         if self.decompose_forecast:
             # (n_batch, n_blocks, h, out_features)
