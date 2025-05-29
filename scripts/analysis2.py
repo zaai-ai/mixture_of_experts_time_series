@@ -1,28 +1,45 @@
 import re
 import pandas as pd
-from datasetsforecast.m4 import M4
-from utilsforecast.losses import smape, mape, rmae, mae, mase, rmse, rmsse
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
 from functools import partial
 
-rmae_func = partial(rmae, baseline='SeasonalNaive')
-
-# from utils import load_dataset, train_test_split
+from utilsforecast.losses import mase
 from modelradar.evaluate.radar import ModelRadar
-from modelradar.visuals.plotter import ModelRadarPlotter, SpiderPlot
-import plotnine as p9
-import matplotlib.pyplot as plt
 
+# Enable pgf backend for LaTeX-friendly output
+matplotlib.use("pgf")
 
-# dataset='gluonts'
-# group='m1_monthly'
-# m1_yearly
-# m1_quarterly
-# tourism_monthly
-# tourism_quarterly
-# tourism_yearly
-# df, horizon, n_lags, freq_str, freq_int = load_dataset(f'{dataset}_{group}', {})
-# train, _ = train_test_split(df, horizon)
+plt.rcParams.update({
+    "pgf.texsystem": "pdflatex",  
+    "font.family": "serif",
+    "text.usetex": True,
+    "pgf.rcfonts": False,
+})
 
+def create_matplotlib_radar_plot(df, dataset_name, ax):
+    labels = df.index.tolist()
+    models = df.columns.tolist()
+    num_vars = len(labels)
+
+    angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
+    angles += angles[:1]
+
+    for model in models:
+        values = df[model].tolist()
+        print(values[:1])
+        values += values[:1]
+        ax.plot(angles, values, label=model)
+        ax.fill(angles, values, alpha=0.1)
+
+    ax.set_title(dataset_name.upper(), size=16)
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(labels, fontsize=10)
+    ax.set_yticklabels([])  # Hide radial labels
+    ax.tick_params(labelsize=10)
+
+rmae_func = partial(mase, seasonality=1)
 
 results_list = {
     'm1m': 'results,gluonts,m1_monthly.csv',
@@ -39,99 +56,74 @@ results_list = {
     'm4y': 'results,m4,Yearly.csv',
 }
 
+all_results = {}
 mase_func = partial(mase, seasonality=1)
 
-all_results = {}
-plots = {}
-for dataset, file_path in results_list.items():
-    print(dataset)
-    df = pd.read_csv(file_path)
-    train = pd.read_csv(re.sub('results','train', file_path))
+fig, axes = plt.subplots(4, 3, figsize=(18, 18), subplot_kw=dict(polar=True))
+axes = axes.flatten()
 
-    radar = ModelRadar(cv_df=df,
-                       # metrics=[smape],
-                       # metrics=[rmae_func],
-                       metrics=[mase_func],
-                       model_names=['NBeatsMoe', 'NBEATS', 'NBeatsStackMoe', 'SeasonalNaive'],
-                       hardness_reference='SeasonalNaive',
-                       ratios_reference='NBEATS',
-                       cvar_quantile=0.75,
-                       hardness_quantile=0.75,
-                       agg_func='median',
-                       train_df=train,
-                       rope=10)
+for idx, (dataset, file_path) in enumerate(results_list.items()):
+    print(f"Processing {dataset}...")
+
+    df = pd.read_csv(file_path)
+    train_path = re.sub('results', 'train', file_path)
+    train = pd.read_csv(train_path)
+
+    radar = ModelRadar(
+        cv_df=df,
+        metrics=[mase_func],
+        model_names=['NBeatsMoe', 'NBEATS', 'NBeatsStackMoe', 'SeasonalNaive'],
+        hardness_reference='SeasonalNaive',
+        ratios_reference='NBEATS',
+        cvar_quantile=0.75,
+        hardness_quantile=0.75,
+        agg_func='median',
+        train_df=train,
+        rope=10
+    )
 
     err = radar.evaluate(keep_uids=True)
     radar.uid_accuracy.get_hard_uids(err, return_df=False)
-    hard_uid_list = radar.uid_accuracy.hard_uid
 
-    err_hard = err.loc[hard_uid_list, :]
-    # err_anomalies = radar.evaluate_by_anomaly(anomaly_col='is_anomaly', mode='observations')
+    df_plot = pd.concat([
+        radar.evaluate(return_plot=False),
+        radar.uid_accuracy.expected_shortfall(err),
+        radar.evaluate_by_horizon_bounds(),
+        radar.uid_accuracy.accuracy_on_hard(err),
+        radar.evaluate_by_group(group_col='anomaly_status'),
+    ], axis=1)
 
-    es_err = radar.uid_accuracy.expected_shortfall(err)
-    es_errh = radar.uid_accuracy.expected_shortfall(err_hard)
-    wdl = radar.rope.get_winning_ratios(err)
+    df_plot = df_plot.rank(ascending=False) - 1 # put to false only for the plot
+    df_plot = df_plot.T
 
-    print('Overall scores')
+    create_matplotlib_radar_plot(df_plot, dataset, axes[idx])
     all_results[dataset] = radar.evaluate()
-    # all_results[dataset] = es_err
-    # all_results[dataset] = err_hard.mean()
-    # all_results[dataset] = es_errh
-    # all_results[dataset] = err_anomalies.mean()
 
-    err_hard = radar.uid_accuracy.get_hard_uids(err)
+# Global figure settings
+fig.suptitle("Aspect-based Evaluation", fontsize=24, fontweight='bold')
+fig.tight_layout(rect=[0, 0, 1, 0.98])
 
-    df_plot = pd.concat([radar.evaluate(return_plot=False),
-                radar.uid_accuracy.expected_shortfall(err),
-                radar.evaluate_by_horizon_bounds(),
-                radar.uid_accuracy.accuracy_on_hard(err),
-                radar.evaluate_by_group(group_col='anomaly_status'),
-                #error_on_trend,
-                #error_on_seas
-                    ], axis=1)
+# Create a proxy artist for legend to get correct colors/labels
+models = ['NBeatsMoe', 'NBEATS', 'NBeatsStackMoe', 'SeasonalNaive']
+colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-    df_plot.head()
+proxy_lines = [plt.Line2D([0], [0], color=colors[i], lw=2) for i in range(len(models))]
+fig.legend(proxy_lines, models, loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=4, fontsize=14)
 
-    plot = SpiderPlot.create_plot(df=df_plot, values='rank', include_title=False)
-    plot = plot + p9.ggtitle(f"Spider Plot for {dataset.upper()}") + p9.theme(
-            plot_margin=0.05,
-            figure_size=(20, 20),
-            legend_position='top',
-            strip_text=p9.element_text(size=17, family='cmtt10'),
-            plot_title=p9.element_text(size=20, family='cmtt10'),
-            panel_grid=p9.element_blank(),
-            legend_text=p9.element_text(size=17, family='cmtt10'),
-            legend_key_size=20,
-            legend_key_width=20,
-            text=p9.element_text(size=17, family='cmtt10'),
+# Save figure as PGF
+plt.savefig("plots/all_radar_grid.pgf", bbox_inches='tight')
 
-            # These lines remove x/y axis elements
-            axis_title_x=p9.element_blank(),
-            axis_title_y=p9.element_blank(),
-            axis_text_x=p9.element_blank(),
-            axis_text_y=p9.element_blank(),
-            axis_ticks=p9.element_blank(),
-            axis_line=p9.element_blank()
-        )
-    
-    plots[dataset] = plot
-    plot.save(f'plots/{dataset}.png', dpi=300, limitsize=False)
+plt.show()
 
-
-# put all plots in a grid
-
-
+# Summary statistics
 r = pd.concat(all_results, axis=1).T
 
-print(r)
-# r = r.drop('tq')
-# print(r.drop('tq').rank(axis=1).mean())
-# print(r.rank(axis=1).mean())
-print('Average rank across datasets')
+print("\nSummary Statistics")
+print("Average Rank:")
 print(r.rank(axis=1).mean())
+print("Standard Deviation of Rank:")
 print(r.rank(axis=1).std())
-print('Median score across datasets')
+print("Median Score:")
 print(r.median())
-print('Mean score across datasets')
+print("Mean Score:")
 print(r.mean())
-# print(r.drop('tq').mean())
