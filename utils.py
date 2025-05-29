@@ -24,6 +24,7 @@ from models.MlpMoe import MLPMoe
 from models.NBeatsMoe import NBeatsMoe
 from models.NBeatsMoeLags import NBeatsMoeLags
 from models.NBeatsStackMoe import NBeatsStackMoe
+from models.NBeatsMStack import NBeatsMStack
 from neuralforecast.models import NHITS
 from neuralforecast.models import NBEATS
 from neuralforecast.models import VanillaTransformer
@@ -491,6 +492,34 @@ def get_instance(
             batch_size=batch_size_val,
             callbacks=[prob_collector],
             return_gate_logits=True,
+            enable_checkpointing=True,
+            val_check_steps=val_check_steps,
+            # scaler_type='standard',
+        )
+
+        callbacks.append(prob_collector)
+    elif model_name.lower() == "nbeatsmstack":
+        input_size_val = get_config_value(params.input_size, config_idx)
+        loss_str = get_config_value(params.loss, config_idx)
+        valid_loss_str = get_config_value(params.valid_loss, config_idx)
+        early_stop = get_config_value(
+        params.early_stop_patience_steps, config_idx)
+        batch_size_val = get_config_value(params.batch_size, config_idx)
+        val_check_steps = get_config_value(params.val_check_steps, config_idx)
+        prob_collector = GateValuesCollectorCallback()
+
+        num_training_steps = 10000
+
+        model_instance = NBeatsMStack(
+            h=horizon,
+            input_size=input_size_val,
+            max_steps=num_training_steps,
+            loss=eval(loss_str)(),
+            valid_loss=eval(loss_str)(),
+            early_stop_patience_steps=early_stop,
+            batch_size=batch_size_val,
+            # callbacks=[prob_collector],
+            # return_gate_logits=True,
             enable_checkpointing=True,
             val_check_steps=val_check_steps,
             # scaler_type='standard',

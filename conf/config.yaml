@@ -2,10 +2,10 @@
 version_base: 1.1
 
 # List of active models to run (should match keys in the models section)
-active_models: ["nbeatsStackMoe"]
+active_models: ["nbeatsmstack"]
 
 # List of active datasets to run (should match keys in the data section)
-active_datasets: ["gluonts_m1_monthly"]
+active_datasets: ["m3"]
 
 models: 
   simpleMoe:
@@ -103,6 +103,14 @@ models:
       val_check_steps: 100
       batch_size: 32
   nbeatsMoe:
+    params:
+      input_size: 24
+      loss: "MAE"         # Single string value (will be eval'd to a loss instance)
+      valid_loss: "MAE"    # Single string value
+      early_stop_patience_steps: 10  # A single number
+      val_check_steps: 100
+      batch_size: 32
+  nbeatsmstack:
     params:
       input_size: 24
       loss: "MAE"         # Single string value (will be eval'd to a loss instance)

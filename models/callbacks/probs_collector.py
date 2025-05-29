@@ -20,6 +20,8 @@ class GateValuesCollectorCallback(pl.Callback):
         self.reset_on_epoch = reset_on_epoch  # Flag to reset gate values on each epoch
         self.batch = 0
 
+        self.mean_ = None
+
     def on_predict_epoch_end(self, trainer, pl_module):
         """
         Called at the end of each epoch during training.
@@ -43,6 +45,9 @@ class GateValuesCollectorCallback(pl.Callback):
             print(f"\nall_gates_cat shape: {all_gates_cat.shape}")
             print("\nmean inputs_cat: ", all_gates_cat.mean(dim=0))
 
+            if self.mean_ is None:
+                self.mean_ = all_gates_cat.mean(dim=0)
+
             # count the number of experts > 0.4
             num_experts = (all_gates_cat > 0.5).sum(dim=0)
             print(f"\nnum_experts: {num_experts}")
@@ -50,6 +55,12 @@ class GateValuesCollectorCallback(pl.Callback):
             # Count the number of times each expert has the highest gate value
             best_expert_counts = torch.argmax(all_gates_cat, dim=1).bincount(minlength=all_gates_cat.shape[1])
             print(f"\nBest expert counts: {best_expert_counts}")
+
+            # Calculate threshold as 5% bigger than the mean for each expert (gate index)
+            threshold = self.mean_ + 0.2
+            # Count the number of times each gate value exceeds the threshold
+            num_above_threshold = (all_gates_cat > threshold).sum(dim=0)
+            print(f"\nNumber of times gate values are +5% bigger than the mean (per expert): {num_above_threshold}")
 
             self.plot_on_stack_analysis(all_gates_cat, all_inputs_cat)
 
