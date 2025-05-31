@@ -59,7 +59,7 @@ results_list = {
 all_results = {}
 mase_func = partial(mase, seasonality=1)
 
-fig, axes = plt.subplots(4, 3, figsize=(18, 18), subplot_kw=dict(polar=True))
+fig, axes = plt.subplots(4, 3, figsize=(12, 12), subplot_kw=dict(polar=True))
 axes = axes.flatten()
 
 for idx, (dataset, file_path) in enumerate(results_list.items()):
