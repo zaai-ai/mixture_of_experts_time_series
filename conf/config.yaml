@@ -2,7 +2,7 @@
 version_base: 1.1
 
 # List of active models to run (should match keys in the models section)
-active_models: ["nbeatsmstack"]
+active_models: ["simpleMoe"]
 
 # List of active datasets to run (should match keys in the data section)
 active_datasets: ["m3"]
