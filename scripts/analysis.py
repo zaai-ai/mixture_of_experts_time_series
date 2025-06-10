@@ -1,6 +1,7 @@
 import pandas as pd
 
 from utilsforecast.losses import smape, mape, rmae, mae, mase, rmse, rmsse
+from neuralforecast.losses.numpy import smape as smape2
 
 from modelradar.evaluate.radar import ModelRadar
 from modelradar.visuals.plotter import ModelRadarPlotter, SpiderPlot
@@ -8,22 +9,33 @@ from pandas.tseries.offsets import DateOffset, MonthEnd, QuarterEnd, YearEnd
 from functools import partial
 
 results_list = {
-    'm1m': 'results,gluonts,m1_monthly.csv',
-    'm1q': 'results,gluonts,m1_quarterly.csv',
-    'm1y': 'results,gluonts,m1_yearly.csv',
-    'tm': 'results,gluonts,tourism_monthly.csv',
-    'tq': 'results,gluonts,tourism_quarterly.csv',
-    'ty': 'results,gluonts,tourism_yearly.csv',
-    'm3m': 'results,m3,Monthly.csv',
-    'm3q': 'results,m3,Quarterly.csv',
-    'm3y': 'results,m3,Yearly.csv',
+    # 'm1m': 'results,gluonts,m1_monthly.csv',
+    # 'm1q': 'results,gluonts,m1_quarterly.csv',
+    # 'm1y': 'results,gluonts,m1_yearly.csv',
+    # 'tm': 'results,gluonts,tourism_monthly.csv',
+    # 'tq': 'results,gluonts,tourism_quarterly.csv',
+    # 'ty': 'results,gluonts,tourism_yearly.csv',
+    # 'm3m': 'results,m3,Monthly.csv',
+    # 'm3q': 'results,m3,Quarterly.csv',
+    # 'm3y': 'results,m3,Yearly.csv',
     # 'm4m': 'results,m4,Monthly.csv',
-    # 'm4q': 'results,m4,Quarterly.csv',
+    'm4q': 'results,m4,Quarterly.csv',
     # 'm4y': 'results,m4,Yearly.csv',
 }
 
 all_results = []
 start_date = pd.to_datetime('1994-01-31')
+
+def calculate_smape(Y_test, predictions, model_name):
+    y_true = Y_test['y'].values
+    y_hat = predictions[model_name].values
+
+    n_series = Y_test['unique_id'].nunique()
+    y_true = y_true.reshape(n_series, -1)
+    y_hat = y_hat.reshape(n_series, -1)
+
+    smape_value = smape2(y_true, y_hat)
+    return smape_value
 
 def convert_to_date(group, freq):
     group = group.copy()
@@ -58,13 +70,18 @@ else:
     print("No files were successfully loaded")
 
 cv = combined_results.copy()
+
+
+print(calculate_smape(cv, cv, "SeasonalNaive"))
+print("HEL")
+raise Exception()
 # -----
 
 # pick hard uids based on smape
 
 radar = ModelRadar(cv_df=cv,
                    metrics=[smape],
-                   model_names=['NBeatsMoe', 'NBEATS', 'NBeatsStackMoe', 'SeasonalNaive'],
+                   model_names=['SeasonalNaive'],
                    hardness_reference='SeasonalNaive',
                    ratios_reference='NBEATS',
                    cvar_quantile=0.95,
@@ -72,6 +89,8 @@ radar = ModelRadar(cv_df=cv,
                    rope=10)
 
 err = radar.evaluate(keep_uids=True)
+print(err)
+print(err.mean())
 radar.uid_accuracy.get_hard_uids(err, return_df=False)
 hard_uid_list = radar.uid_accuracy.hard_uid
 
@@ -85,8 +104,8 @@ mase_func = partial(mase, seasonality=1)
 
 radar = ModelRadar(cv_df=cv,
                    # metrics=[smape, mae],
-                   # metrics=[smape],
-                   metrics=[rmae_func],
+                   metrics=[smape],
+                   # metrics=[rmae_func],
                    model_names=['NBeatsMoe', 'NBEATS', 'NBeatsStackMoe', 'SeasonalNaive'],
                    hardness_reference='SeasonalNaive',
                    ratios_reference='NBEATS',
