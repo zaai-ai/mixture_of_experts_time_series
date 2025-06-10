@@ -62,6 +62,10 @@ class GateValuesCollectorCallback(pl.Callback):
             num_above_threshold = (all_gates_cat > threshold).sum(dim=0)
             print(f"\nNumber of times gate values are +5% bigger than the mean (per expert): {num_above_threshold}")
 
+            ## calculate the difference to the mean
+            diff_to_mean = all_gates_cat - self.mean_
+            print(f"\nDifference to mean: {diff_to_mean.mean(dim=0)}")
+
             self.plot_on_stack_analysis(all_gates_cat, all_inputs_cat)
 
             np.save(f"gate_values_stack{self.batch}_epoch_{trainer.current_epoch}.npy", np.array(all_gates_cat.detach().cpu().numpy()))

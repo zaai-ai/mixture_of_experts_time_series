@@ -271,6 +271,7 @@ class NBeatsStackMoe(BaseWindows):
         scaler_type: str = "identity",
         random_seed: int = 1,
         drop_last_loader: bool = False,
+        is_sigmoid: bool = False,
         optimizer=None,
         store_all_gate_logits=True,
         optimizer_kwargs=None,
@@ -333,12 +334,20 @@ class NBeatsStackMoe(BaseWindows):
             nn.LayerNorm(input_size),
             nn.Linear(in_features=input_size, out_features=sum(n_blocks)),
         )
+
         
         self._training = True
         self.store_all_gate_logits = store_all_gate_logits
         self.all_gate_logits = []
         self.all_inputs = []
         self.all_outs = [[] for _ in range(len(self.blocks))]
+
+        self.is_sigmoid = is_sigmoid
+
+        self.gate_act = nn.Softmax(dim=-1)
+
+        if self.is_sigmoid:
+            self.gate_act = nn.Sigmoid()
 
         
     def predict_step(self, batch, batch_idx):
@@ -431,7 +440,7 @@ class NBeatsStackMoe(BaseWindows):
 
         # Gate
         gate = self.gate(insample_y)
-        gate = F.softmax(gate, dim=-1)
+        gate = self.gate_act(gate)
         
         if not self._training and self.store_all_gate_logits:
             self.all_gate_logits.append(gate)
