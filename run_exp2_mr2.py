@@ -25,7 +25,7 @@ from neuralforecast.models import NBEATS
 from models.config import config
 
 dataset='m4'
-group='Yearly'
+group='Quarterly'
 # m1_yearly
 # m1_quarterly
 # tourism_monthly
@@ -42,13 +42,13 @@ df = load_dataset(dataset, {'directory': '.', 'group': group})
 
 # horizon = 18
 # horizon = 8
-horizon = 6
+horizon = 8
 # n_lags = 18
 # n_lags = 8
 # n_lags = 2
 # freq_int = 12
 # freq_int = 4
-# freq_int = 1
+freq_int = 4
 # freq_str = 'ME'
 # freq_str = 'QE'
 # freq_str = 'Y'
@@ -82,9 +82,9 @@ models = [
 
 stats_models = [SeasonalNaive(season_length=freq_int)]
 
-sf = StatsForecast(models=stats_models, freq=freq_str, n_jobs=1)
+sf = StatsForecast(models=stats_models, freq=1, n_jobs=1)
 
-fcst = NeuralForecast(models=models, freq=freq_str)
+fcst = NeuralForecast(models=models, freq=1)
 fcst.fit(df=train, static_df=None, val_size=horizon)
 sf.fit(df=train)
 
