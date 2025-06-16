@@ -9,18 +9,18 @@ from pandas.tseries.offsets import DateOffset, MonthEnd, QuarterEnd, YearEnd
 from functools import partial
 
 results_list = {
-    # 'm1m': 'results,gluonts,m1_monthly.csv',
-    # 'm1q': 'results,gluonts,m1_quarterly.csv',
-    # 'm1y': 'results,gluonts,m1_yearly.csv',
-    # 'tm': 'results,gluonts,tourism_monthly.csv',
-    # 'tq': 'results,gluonts,tourism_quarterly.csv',
-    # 'ty': 'results,gluonts,tourism_yearly.csv',
-    # 'm3m': 'results,m3,Monthly.csv',
-    # 'm3q': 'results,m3,Quarterly.csv',
-    # 'm3y': 'results,m3,Yearly.csv',
-    # 'm4m': 'results,m4,Monthly.csv',
+    'm1m': 'results,gluonts,m1_monthly.csv',
+    'm1q': 'results,gluonts,m1_quarterly.csv',
+    'm1y': 'results,gluonts,m1_yearly.csv',
+    'tm': 'results,gluonts,tourism_monthly.csv',
+    'tq': 'results,gluonts,tourism_quarterly.csv',
+    'ty': 'results,gluonts,tourism_yearly.csv',
+    'm3m': 'results,m3,Monthly.csv',
+    'm3q': 'results,m3,Quarterly.csv',
+    'm3y': 'results,m3,Yearly.csv',
+    'm4m': 'results,m4,Monthly.csv',
     'm4q': 'results,m4,Quarterly.csv',
-    # 'm4y': 'results,m4,Yearly.csv',
+    'm4y': 'results,m4,Yearly.csv',
 }
 
 all_results = []
@@ -50,11 +50,9 @@ for dataset, file_path in results_list.items():
 
         # print(df['ds'].head())
         # print(df['ds'].describe())
-        # if pd.api.types.is_integer_dtype(df['ds']):
+        if pd.api.types.is_integer_dtype(df['ds']):
 
-        #     df = df.groupby('unique_id', group_keys=False).apply(partial(convert_to_date, freq=dataset[-1].upper()+'E'))
-
-        # print(df['ds'].head())
+            df = df.groupby('unique_id', group_keys=False).apply(partial(convert_to_date, freq=dataset[-1].upper()+'E'))
 
         all_results.append(df)
         print(f"Successfully loaded: {file_path}")
@@ -72,9 +70,7 @@ else:
 cv = combined_results.copy()
 
 
-print(calculate_smape(cv, cv, "SeasonalNaive"))
-print("HEL")
-raise Exception()
+# print(calculate_smape(cv, cv, "SeasonalNaive"))
 # -----
 
 # pick hard uids based on smape
@@ -144,6 +140,13 @@ err_anomalies = radar.evaluate_by_anomaly(anomaly_col='is_anomaly', mode='observ
 # err_anomalies = radar.evaluate_by_anomaly(anomaly_col='is_anomaly', mode='series')
 
 err_anomalies.head()
+
+## by expected shortfall
+print('Overall scores by expected shortfall')
+print(radar.uid_accuracy.expected_shortfall(err))
+print('Overall scores by expected shortfall on hard time series')
+print(radar.uid_accuracy.expected_shortfall(err_hard))
+
 
 print('Scores by horizon bound')
 print(radar.evaluate_by_horizon_bounds(return_plot=False))
