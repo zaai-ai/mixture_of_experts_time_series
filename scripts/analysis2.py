@@ -79,7 +79,7 @@ for idx, (dataset, file_path) in enumerate(results_list.items()):
         ratios_reference='NBEATS',
         cvar_quantile=0.75,
         hardness_quantile=0.75,
-        agg_func='median',
+        agg_func='mean',
         train_df=train,
         rope=10
     )
