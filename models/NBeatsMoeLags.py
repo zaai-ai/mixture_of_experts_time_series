@@ -419,7 +419,7 @@ class NBeatsMoeLags(BaseWindows):
         optimizer_kwargs=None,
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
-        dataloader_kwargs=None,
+        # dataloader_kwargs=None,
         **trainer_kwargs,
     ):
 
@@ -453,7 +453,7 @@ class NBeatsMoeLags(BaseWindows):
             optimizer_kwargs=optimizer_kwargs,
             lr_scheduler=lr_scheduler,
             lr_scheduler_kwargs=lr_scheduler_kwargs,
-            dataloader_kwargs=dataloader_kwargs,
+            # dataloader_kwargs=dataloader_kwargs,
             **trainer_kwargs,
         )
 

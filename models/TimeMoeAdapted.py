@@ -546,7 +546,7 @@ class TimeMoeAdapted(BaseWindows):
                  optimizer_kwargs = None,
                  lr_scheduler = None,
                  lr_scheduler_kwargs = None,
-                 dataloader_kwargs = None,
+                #  dataloader_kwargs = None,
                  hidden_size=128,
                  config=False,
                  n_head=None,
@@ -583,7 +583,7 @@ class TimeMoeAdapted(BaseWindows):
                                    optimizer_kwargs=optimizer_kwargs,
                                    lr_scheduler=lr_scheduler,
                                    lr_scheduler_kwargs=lr_scheduler_kwargs,
-                                   dataloader_kwargs=dataloader_kwargs,
+                                #    dataloader_kwargs=dataloader_kwargs,
                                    **trainer_kwargs)
 
         self.input_size = input_size
